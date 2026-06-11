@@ -2,7 +2,7 @@
 
 - **Milestone:** M1
 - **Priority:** P0
-- **Status:** In Progress (scaffolding pushed; awaiting first green CI)
+- **Status:** Done (2026-06-11 — CI run #4 green: build + ktlint + lint)
 - **Dependencies:** none
 
 ## Description

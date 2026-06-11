@@ -25,7 +25,7 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 | ThreatModeling | ✅ Done (v1) | [THREAT_MODEL.md](THREAT_MODEL.md) — STRIDE T1–T11, gating rules |
 | Architecture | ✅ Done (v1) | [ARCHITECTURE.md](ARCHITECTURE.md), ADRs 0001/0002, [`schema/gesture-macro-v1.json`](../schema/gesture-macro-v1.json); ticket-006 executed |
 | Design | ✅ Done (v1) | [DESIGN.md](DESIGN.md) — contracts for engine/sensors/actions/data/serialization |
-| Implementation | 🟡 **In progress** | ticket-001 scaffolding committed (Gradle 8.11.1 wrapper, AGP 8.7.3, Kotlin 2.1.0, Compose, version catalog, placeholder `MainActivity`). **Awaiting first green CI build.** Tickets 002–005 not started |
+| Implementation | 🟡 **In progress** | ticket-001 **Done** — scaffolding verified by CI run #4 (green: `gradlew build` + ktlint + Android Lint). Tickets 002–005 not started |
 | StaticAnalysis | 🟡 Partial | ktlint plugin wired (runs in `gradlew build` via `check`); Android Lint step in CI. TODO: detekt |
 | SecurityAnalysis | ⬜ Not started | Gate: NFR-3; first concrete task arrives with ticket-005 import path |
 | FormalVerification | ⬜ Not started | Scope decision pending — realistic target: model-check the engine state machine (cooldown/constraint logic) or exhaustive property tests; decide at M1 review |
@@ -39,14 +39,11 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 
 ## ▶ NEXT ACTIONS (in order)
 
-1. **Check CI for the ticket-001 scaffolding build** on branch `claude/repo-criticality-flaws-review-jxpodr` (workflow now triggers on `claude/**` pushes).
-   - If **red**: likely version-pairing issues (AGP 8.7.3 / Kotlin 2.1.0 / Gradle 8.11.1 / ktlint 12.1.2) or ktlint formatting of `MainActivity.kt`. Fix, push, repeat.
-   - If **green**: mark ticket-001 **Done**, flip Implementation row above for the scaffolding part, and open a PR to `main`.
-2. **Merge scaffolding PR to `main`** (CI must be green on the PR).
-3. **ticket-002** (`feat/ticket-002-foreground-service`): GestureCaptureService per DESIGN.md (WakeLockGuard with hard timeout, heartbeat, FGS `specialUse` + pre-34 fallback).
-4. **ticket-003** (`feat/ticket-003-sensor-listener-module`): SensorStream + shake/flip detectors + trace-replay unit tests → this activates the **UnitTesting** stage. M1 exit: flip detected screen-off < 500 ms.
-5. **ticket-004**, then **ticket-005** (ticket-005 activates **SecurityAnalysis** — import rules T1/T2 — and defines **FuzzTesting** targets).
-6. At M1 completion: re-plan checkpoint (REFACTORING_PLAN Phase 3), file M2 executor tickets, decide FormalVerification scope.
+1. **Open a PR from `claude/repo-criticality-flaws-review-jxpodr` to `main`** with the SDLC docs + verified scaffolding (CI already green on the branch: run #4) and merge it.
+2. **ticket-002** (`feat/ticket-002-foreground-service`): GestureCaptureService per DESIGN.md (WakeLockGuard with hard timeout, heartbeat, FGS `specialUse` + pre-34 fallback).
+3. **ticket-003** (`feat/ticket-003-sensor-listener-module`): SensorStream + shake/flip detectors + trace-replay unit tests → this activates the **UnitTesting** stage. M1 exit: flip detected screen-off < 500 ms.
+4. **ticket-004**, then **ticket-005** (ticket-005 activates **SecurityAnalysis** — import rules T1/T2 — and defines **FuzzTesting** targets).
+5. At M1 completion: re-plan checkpoint (REFACTORING_PLAN Phase 3), file M2 executor tickets, decide FormalVerification scope.
 
 ## Environment notes for future sessions (important)
 

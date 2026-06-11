@@ -69,7 +69,7 @@ service/              ┘ GestureCaptureService, MacroAccessibilityService   unt
 Module-split trigger: the single `app` module splits into Gradle modules matching the tree above **at the start of M2** (when `core/actions` and `service/` gain real depth). Until then the boundary is enforced by package structure + review.
 
 - [x] `schema/` created in Phase 1 (schema extraction).
-- [ ] Code tree created by ticket-001; ticket-001 acceptance criteria already require this layout.
+- [x] Code tree created by ticket-001 (single `app` module; packages emerge with code); ticket-001 acceptance criteria already require this layout.
 - [ ] M2 kickoff includes a `chore/` ticket for the module split.
 
 ## Phase 3 — Next steps, pinned (ordered)
