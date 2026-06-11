@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "claude/**", "feat/**", "fix/**", "chore/**", "refactor/**", "docs/**"]
   pull_request:
     branches: [main]
 
@@ -25,28 +25,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # The Gradle project lands with ticket-001. Until ./gradlew exists,
-      # CI skips the build steps instead of failing the whole pipeline.
-      - name: Check for Gradle wrapper
-        id: gradle-check
-        run: |
-          if [ -f ./gradlew ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No Gradle wrapper found — skipping build and lint (pending ticket-001-gradle-scaffolding)."
-          fi
-
       - name: Build
-        if: steps.gradle-check.outputs.exists == 'true'
         run: ./gradlew build --stacktrace
 
       - name: Lint
-        if: steps.gradle-check.outputs.exists == 'true'
         run: ./gradlew lint
 
       - name: Upload lint reports
-        if: steps.gradle-check.outputs.exists == 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lint-reports

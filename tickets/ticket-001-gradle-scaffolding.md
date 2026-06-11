@@ -2,7 +2,7 @@
 
 - **Milestone:** M1
 - **Priority:** P0
-- **Status:** Backlog
+- **Status:** In Progress (scaffolding pushed; awaiting first green CI)
 - **Dependencies:** none
 
 ## Description
