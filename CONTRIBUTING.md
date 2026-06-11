@@ -50,7 +50,7 @@ Keep subjects imperative and under ~72 characters; use the body for the "why".
 - The PR description **must** link the ticket file it implements.
 - The branch name **must** match the convention — PRs from non-conforming branches will be asked to rebranch.
 - CI (`Android CI` workflow) must pass: Gradle build + lint.
-- No Kotlin source without an associated ticket in an active milestone (see [ARCHITECTURE.md](ARCHITECTURE.md#milestone-roadmap)).
+- No Kotlin source without an associated ticket in an active milestone (see [ARCHITECTURE.md](docs/ARCHITECTURE.md#milestone-roadmap)).
 
 ## Code style
 

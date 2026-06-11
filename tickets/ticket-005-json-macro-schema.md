@@ -7,7 +7,7 @@
 
 ## Description
 
-Finalize the Gesture-Macro v1 schema (draft embedded in [ARCHITECTURE.md](../ARCHITECTURE.md#gesture-macro-data-structure)) and implement the kotlinx.serialization model layer with strict validation, import/export, and a versioned migration path. The schema is the app's public contract — macros must survive export → import across devices and app versions.
+Finalize the Gesture-Macro v1 schema (draft embedded in [ARCHITECTURE.md](../docs/ARCHITECTURE.md#gesture-macro-data-structure)) and implement the kotlinx.serialization model layer with strict validation, import/export, and a versioned migration path. The schema is the app's public contract — macros must survive export → import across devices and app versions.
 
 ## Acceptance criteria
 

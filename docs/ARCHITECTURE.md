@@ -65,69 +65,7 @@ Canonical format is **JSON**; YAML is accepted at import and offered at export a
 
 ### JSON Schema (v1)
 
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/dianila68/macro-through-phone-gesture-/schema/gesture-macro-v1.json",
-  "title": "GestureMacro",
-  "type": "object",
-  "required": ["version", "id", "name", "trigger", "actions"],
-  "properties": {
-    "version": { "const": 1 },
-    "id": { "type": "string", "format": "uuid" },
-    "name": { "type": "string", "minLength": 1, "maxLength": 64 },
-    "enabled": { "type": "boolean", "default": true },
-    "trigger": {
-      "type": "object",
-      "required": ["sensor", "pattern"],
-      "properties": {
-        "sensor": { "enum": ["accelerometer", "gyroscope", "proximity", "external"] },
-        "pattern": { "enum": ["shake", "double_shake", "flip_face_down", "flip_face_up", "twist", "proximity_wave", "custom"] },
-        "sensitivity": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.5 },
-        "cooldown_ms": { "type": "integer", "minimum": 0, "default": 2000 },
-        "custom_thresholds": {
-          "type": "object",
-          "description": "Pattern-specific raw thresholds; only valid when pattern == custom",
-          "additionalProperties": { "type": "number" }
-        },
-        "source_device": {
-          "type": "string",
-          "description": "M4: id of a bridged external device; only valid when sensor == external"
-        }
-      }
-    },
-    "constraints": {
-      "type": "object",
-      "properties": {
-        "screen_state": { "enum": ["any", "on", "off"], "default": "any" },
-        "time_window": {
-          "type": "object",
-          "required": ["start", "end"],
-          "properties": {
-            "start": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
-            "end": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
-          }
-        }
-      }
-    },
-    "actions": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["type"],
-        "properties": {
-          "type": { "enum": ["system_toggle", "media_control", "intent", "accessibility"] },
-          "target": { "type": "string", "description": "e.g. 'flashlight' for system_toggle; package name for intent/accessibility" },
-          "command": { "type": "string", "description": "e.g. 'play_pause', 'next' for media_control; action verb for accessibility" },
-          "extras": { "type": "object", "additionalProperties": { "type": "string" } },
-          "delay_after_ms": { "type": "integer", "minimum": 0, "default": 0 }
-        }
-      }
-    }
-  }
-}
-```
+The normative schema lives at [`schema/gesture-macro-v1.json`](../schema/gesture-macro-v1.json) — the single source of truth for tooling, tests, and the kotlinx.serialization models (ticket-005). Highlights: required `version`/`id`/`name`/`trigger`/`actions`; trigger = sensor + pattern + sensitivity + `cooldown_ms`; typed actions (`system_toggle`, `media_control`, `intent`, `accessibility`); optional `constraints` (screen state, time window).
 
 ### Example macro
 
@@ -166,6 +104,6 @@ BLE/LAN bridge exposing **sensors of secondary devices** (smartwatch, spare phon
 
 ## Cross-cutting concerns
 
-- **Security:** the AccessibilityService and the macro import parser are the privilege/attack surface; both get dedicated review (see CONTRIBUTING.md) and the M4 bridge requires mutual authentication before any remote trigger is honored.
+- **Security:** the AccessibilityService and the macro import parser are the privilege/attack surface; both get dedicated review (see ../CONTRIBUTING.md) and the M4 bridge requires mutual authentication before any remote trigger is honored.
 - **Battery budget:** every detector must declare its sampling rate and expected wakelock duty cycle in its ticket; regressions are release blockers.
 - **Testing:** detectors are tested against recorded sensor traces (deterministic replay), not live hardware, in CI.
