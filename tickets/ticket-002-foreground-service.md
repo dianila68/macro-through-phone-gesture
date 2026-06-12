@@ -2,7 +2,7 @@
 
 - **Milestone:** M1
 - **Priority:** P0
-- **Status:** In Progress (service backbone landed; battery-exemption onboarding and Doze measurements pending)
+- **Status:** In Progress (backbone + sensor pipeline wired; battery-exemption onboarding and Doze measurements pending)
 - **Dependencies:** ticket-001
 
 ## Description

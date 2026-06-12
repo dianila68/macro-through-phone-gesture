@@ -56,6 +56,13 @@ fun EngineScreen() {
                 text = if (running) "Engine: running" else "Engine: stopped",
                 style = MaterialTheme.typography.headlineSmall,
             )
+            val lastGesture by GestureCaptureService.lastGesture.collectAsState()
+            lastGesture?.let {
+                Text(
+                    text = "Last gesture: ${it.pattern} @ ${it.t} ms",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             val lastBeat = Heartbeat(context).lastBeat()
             if (!running && lastBeat > 0L && Heartbeat(context).diedUnexpectedly()) {
                 Text(

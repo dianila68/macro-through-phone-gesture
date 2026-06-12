@@ -10,7 +10,7 @@
     <!-- Threat T5/NFR-4: macro store must not be extractable via adb backup -->
     <application
         android:allowBackup="false"
-        android:label="GestureMacro"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
@@ -31,6 +31,19 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Continuous hardware gesture capture driving user-authored device macros" />
+        </service>
+
+        <!-- Action-execution arm; binding restricted to the system (threat T3) -->
+        <service
+            android:name=".service.MacroAccessibilityService"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
     </application>
 

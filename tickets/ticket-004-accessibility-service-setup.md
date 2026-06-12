@@ -2,7 +2,7 @@
 
 - **Milestone:** M2
 - **Priority:** P1
-- **Status:** Backlog
+- **Status:** In Progress (service declared with minimal scope, connection-state flow, global-action executor; onboarding UI pending)
 - **Dependencies:** ticket-001, ticket-002
 
 ## Description
