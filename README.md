@@ -2,7 +2,7 @@
 
 GestureMacro is a native Android application that executes **system macros** and controls **third-party apps** (e.g. Spotify, flashlight) through **hardware gestures captured in the background** — shake patterns, device flips, proximity waves, and other sensor-derived triggers — without requiring the screen to be on or the app to be in the foreground.
 
-> **Status: pre-alpha (planning & scaffolding).** No application code has landed yet. See the [roadmap](ARCHITECTURE.md#milestone-roadmap) and the [`tickets/`](tickets/) backlog for what is being built first.
+> **Status: pre-alpha (planning & scaffolding).** No application code has landed yet. See the [roadmap](docs/ARCHITECTURE.md#milestone-roadmap) and the [`tickets/`](tickets/) backlog for what is being built first.
 
 ## Why native Kotlin (the architectural pivot)
 
@@ -31,13 +31,19 @@ This project deliberately targets **100% native Kotlin** rather than a cross-pla
 - **Background:** Foreground Service, strategic WakeLocks
 - **Execution:** Accessibility API, system Intents
 
-Full details, including the Gesture-Macro JSON Schema and the milestone roadmap, are in [ARCHITECTURE.md](ARCHITECTURE.md).
+Full details, including the Gesture-Macro JSON Schema and the milestone roadmap, are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Repository layout
 
 | Path | Purpose |
 |---|---|
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Tech stack, background-execution strategy, data format, roadmap |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Tech stack, background-execution strategy, data format, roadmap |
+| [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) | Functional & non-functional requirements (FR-x / NFR-x) |
+| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | STRIDE threat model (T1–T11) gating security-sensitive work |
+| [`docs/adr/`](docs/adr/) | Architecture Decision Records |
+| [`docs/SDLC_STATE.md`](docs/SDLC_STATE.md) | Lifecycle state machine — current stage & next actions |
+| [`schema/`](schema/) | Versioned Gesture-Macro JSON Schemas (normative format contract) |
+| [`SECURITY.md`](SECURITY.md) | Vulnerability reporting & hard security rules |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Branch naming, ticket workflow, PR rules |
 | [`tickets/`](tickets/) | File-based ticket backlog (source of truth for planned work) |
 | `.github/workflows/` | CI (Gradle build + lint) |

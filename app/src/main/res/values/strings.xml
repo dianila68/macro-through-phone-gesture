@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GestureMacro</string>
+    <string name="accessibility_service_description">GestureMacro uses this service only to perform the
+        actions you configure in your own macros (for example: press Back, open notifications, or control
+        another app) when a hardware gesture you defined is detected. It reads no screen content and sends
+        nothing off this device. Macros imported from others that use this capability arrive disabled until
+        you explicitly enable them.</string>
+</resources>

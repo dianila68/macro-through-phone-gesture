@@ -2,7 +2,7 @@
 
 - **Milestone:** M1
 - **Priority:** P1
-- **Status:** Backlog
+- **Status:** Done (2026-06-12 — shake/flip detectors CI-verified via trace replay; on-device latency check tracked in ticket-009)
 - **Dependencies:** ticket-001, ticket-002
 
 ## Description

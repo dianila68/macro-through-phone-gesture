@@ -1,6 +1,6 @@
 # Refactoring & Reorganization Plan
 
-> Owner: dianila68 · Created: 2026-06-11 · Status: **Proposed**
+> Owner: dianila68 · Created: 2026-06-11 · Status: **Executed** (Phases 0–1 done 2026-06-11; Phase 2 code tree pending ticket-001)
 > Execution tracked by [ticket-006](../tickets/ticket-006-repo-refactoring.md). Check items off in the PRs that implement them.
 
 ## Goal
@@ -39,11 +39,11 @@ docs/
 
 Steps:
 
-- [ ] Create `SECURITY.md` (reporting channel; note that AccessibilityService + macro import are the audited surfaces, per CONTRIBUTING).
-- [ ] Move `ARCHITECTURE.md` → `docs/ARCHITECTURE.md`; fix every relative link (README, CONTRIBUTING, all 5 tickets reference it).
-- [ ] Extract the JSON Schema to `schema/gesture-macro-v1.json` (see 0.3); ARCHITECTURE keeps the example macro only.
-- [ ] Write the two ADRs above (short, one page each — decisions are already documented in prose, ADRs make them citable).
-- [ ] Add a docs index section to `README.md` pointing at `docs/`.
+- [x] Create `SECURITY.md` (reporting channel; note that AccessibilityService + macro import are the audited surfaces, per CONTRIBUTING).
+- [x] Move `ARCHITECTURE.md` → `docs/ARCHITECTURE.md`; fix every relative link (README, CONTRIBUTING, all 5 tickets reference it).
+- [x] Extract the JSON Schema to `schema/gesture-macro-v1.json` (see 0.3); ARCHITECTURE keeps the example macro only.
+- [x] Write the two ADRs above (short, one page each — decisions are already documented in prose, ADRs make them citable).
+- [x] Add a docs index section to `README.md` pointing at `docs/`.
 
 Rule going forward: **README/CONTRIBUTING/SECURITY at root, everything else under `docs/`, decisions as ADRs** — no new top-level markdown files.
 
@@ -68,8 +68,8 @@ service/              ┘ GestureCaptureService, MacroAccessibilityService   unt
 
 Module-split trigger: the single `app` module splits into Gradle modules matching the tree above **at the start of M2** (when `core/actions` and `service/` gain real depth). Until then the boundary is enforced by package structure + review.
 
-- [ ] `schema/` created in Phase 1 (schema extraction).
-- [ ] Code tree created by ticket-001; ticket-001 acceptance criteria already require this layout.
+- [x] `schema/` created in Phase 1 (schema extraction).
+- [x] Code tree created by ticket-001 (single `app` module; packages emerge with code); ticket-001 acceptance criteria already require this layout.
 - [ ] M2 kickoff includes a `chore/` ticket for the module split.
 
 ## Phase 3 — Next steps, pinned (ordered)
