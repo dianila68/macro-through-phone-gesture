@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import io.github.dianila68.gesturemacro.service.GestureCaptureService
 import io.github.dianila68.gesturemacro.service.Heartbeat
 import io.github.dianila68.gesturemacro.service.MacroAccessibilityService
+import io.github.dianila68.gesturemacro.ui.MacroManagerSection
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,8 +63,8 @@ fun EngineScreen() {
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -95,6 +98,7 @@ fun EngineScreen() {
             }
             BatteryExemptionCard(context)
             AccessibilityCard(context)
+            MacroManagerSection()
         }
     }
 }
