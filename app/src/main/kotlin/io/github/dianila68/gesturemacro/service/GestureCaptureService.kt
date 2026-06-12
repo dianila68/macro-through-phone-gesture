@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
  * logic itself (DESIGN.md): it owns the lifecycle of the sensor module and engine.
  */
 class GestureCaptureService : Service() {
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var heartbeat: Heartbeat
 
