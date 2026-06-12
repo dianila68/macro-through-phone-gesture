@@ -82,4 +82,11 @@ class YamlCodecTest {
         val error = MacroCodec.decodeYaml(doc).exceptionOrNull()
         assertTrue(error is MacroCodec.ImportException.UnsupportedVersion)
     }
+
+    @Test
+    fun `decodeAuto accepts both formats and rejects garbage`() {
+        assertEquals(macro, MacroCodec.decodeAuto(MacroCodec.encode(macro)).getOrThrow())
+        assertEquals(macro, MacroCodec.decodeAuto(MacroCodec.encodeYaml(macro)).getOrThrow())
+        assertTrue(MacroCodec.decodeAuto("not a macro in any format").isFailure)
+    }
 }

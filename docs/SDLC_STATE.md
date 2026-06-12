@@ -40,7 +40,7 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 ## ▶ NEXT ACTIONS (in order)
 
 1. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart, shake→flashlight E2E). Closes ticket-002 and M1. **Requires a human with a device.**
-2. **M3 UI** — macro list/editor screens over MacroStore (FR-6) + import/export via SAF pickers (FR-7) wired to MacroCodec.
+2. **ticket-010** — macro editor screen (FR-6 remainder; list/toggle/delete/import/export shipped in the manager section).
 3. **ticket-007 remainder** — HMAC integrity column (Keystore-backed, T5) + migration harness; instrumented DAO tests (activates IntegrationTesting).
 4. **ticket-008 remainder** — fuzz corpus seeds for JSON/YAML import (activates FuzzTesting).
 5. At M1 closure: re-plan checkpoint (REFACTORING_PLAN Phase 3), module split decision (M2 trigger), FormalVerification scope decision (engine state machine).

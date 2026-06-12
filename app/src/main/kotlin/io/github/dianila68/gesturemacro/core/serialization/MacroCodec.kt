@@ -90,6 +90,14 @@ object MacroCodec {
 
     fun encodeYaml(macro: GestureMacro): String = yaml.encodeToString(GestureMacro.serializer(), macro)
 
+    /** Import pickers don't know the format: try JSON (canonical) first, then YAML. */
+    fun decodeAuto(text: String): Result<GestureMacro> {
+        val asJson = decode(text)
+        if (asJson.isSuccess) return asJson
+        val asYaml = decodeYaml(text)
+        return if (asYaml.isSuccess) asYaml else asJson
+    }
+
     /** Trusted internal storage path: no size cap or import policy (those guard the import boundary). */
     fun encodeForStorage(macro: GestureMacro): String = json.encodeToString(macro)
 
