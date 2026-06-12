@@ -58,6 +58,12 @@ object MacroCodec {
 
     fun encode(macro: GestureMacro): String = json.encodeToString(macro)
 
+    /** Trusted internal storage path: no size cap or import policy (those guard the import boundary). */
+    fun encodeForStorage(macro: GestureMacro): String = json.encodeToString(macro)
+
+    fun decodeFromStorage(text: String): GestureMacro? =
+        runCatching { json.decodeFromString<GestureMacro>(text) }.getOrNull()
+
     /**
      * Threat T1: a shared macro that can drive other apps must arrive disabled,
      * regardless of the document's enabled flag. Re-enabling is an explicit user act.

@@ -2,7 +2,7 @@
 
 - **Milestone:** M3
 - **Priority:** P1
-- **Status:** Backlog
+- **Status:** In Progress (entities/DAO/store + execution log landed; HMAC integrity column and migration harness pending)
 - **Dependencies:** ticket-005
 
 ## Description
@@ -11,9 +11,9 @@ Replace the in-memory `MacroStore` backing with Room so macros, enable/disable s
 
 ## Acceptance criteria
 
-- [ ] Room entities/DAO for macros (serialized via `MacroCodec` or columns) and `ExecutionLog`.
-- [ ] KSP wired in the version catalog for the Room compiler.
-- [ ] `ActionDispatcher` results recorded as `ExecutionLog` rows (macro id, action type, result, timestamp).
+- [x] Room entities/DAO for macros (serialized via `MacroCodec` or columns) and `ExecutionLog`.
+- [x] KSP wired in the version catalog for the Room compiler.
+- [x] `ActionDispatcher` results recorded as `ExecutionLog` rows (macro id, action type, result, timestamp).
 - [ ] `allowBackup=false` confirmed still set; integrity HMAC column per threat T5 (key in Keystore).
 - [ ] Migration story documented (schema export enabled, `Migration` test harness).
-- [ ] Built-in shake-to-flashlight macro seeded on first run only.
+- [x] Built-in shake-to-flashlight macro seeded on first run only.

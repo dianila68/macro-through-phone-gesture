@@ -10,6 +10,7 @@
 
     <!-- Threat T5/NFR-4: macro store must not be extractable via adb backup -->
     <application
+        android:name=".GestureMacroApp"
         android:allowBackup="false"
         android:label="@string/app_name"
         android:supportsRtl="true"

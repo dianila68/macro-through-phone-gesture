@@ -104,6 +104,7 @@ class GestureCaptureService : Service() {
         for (macro in fired) {
             scope.launch {
                 val results = dispatcher.run(macro)
+                MacroStore.recordExecution(macro, results)
                 Log.i(TAG, "Macro '${macro.name}' executed: $results")
             }
         }
