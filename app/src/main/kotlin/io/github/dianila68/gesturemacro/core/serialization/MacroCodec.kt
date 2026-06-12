@@ -1,5 +1,8 @@
 package io.github.dianila68.gesturemacro.core.serialization
 
+import com.charleskorn.kaml.PolymorphismStyle
+import com.charleskorn.kaml.Yaml
+import com.charleskorn.kaml.YamlConfiguration
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -32,6 +35,15 @@ object MacroCodec {
         prettyPrint = true
     }
 
+    // kaml defaults keep anchors/aliases disabled and strict mode on (threat T2)
+    private val yaml = Yaml(
+        configuration = YamlConfiguration(
+            encodeDefaults = true,
+            polymorphismStyle = PolymorphismStyle.Property,
+            polymorphismPropertyName = "type",
+        ),
+    )
+
     fun decode(text: String): Result<GestureMacro> {
         val size = text.toByteArray(Charsets.UTF_8).size
         if (size > MAX_DOCUMENT_BYTES) return Result.failure(ImportException.TooLarge(size))
@@ -57,6 +69,32 @@ object MacroCodec {
     }
 
     fun encode(macro: GestureMacro): String = json.encodeToString(macro)
+
+    /** YAML import: same size cap and T1 policy; version checked post-decode (ADR-0002). */
+    fun decodeYaml(text: String): Result<GestureMacro> {
+        val size = text.toByteArray(Charsets.UTF_8).size
+        if (size > MAX_DOCUMENT_BYTES) return Result.failure(ImportException.TooLarge(size))
+        return try {
+            val macro = yaml.decodeFromString(GestureMacro.serializer(), text)
+            if (macro.version != SUPPORTED_VERSION) {
+                Result.failure(ImportException.UnsupportedVersion(macro.version))
+            } else {
+                Result.success(applyImportPolicy(macro))
+            }
+        } catch (e: SerializationException) {
+            Result.failure(ImportException.Invalid(e.message ?: "Invalid YAML macro document"))
+        } catch (e: IllegalArgumentException) {
+            Result.failure(ImportException.Invalid(e.message ?: "Invalid macro values"))
+        }
+    }
+
+    fun encodeYaml(macro: GestureMacro): String = yaml.encodeToString(GestureMacro.serializer(), macro)
+
+    /** Trusted internal storage path: no size cap or import policy (those guard the import boundary). */
+    fun encodeForStorage(macro: GestureMacro): String = json.encodeToString(macro)
+
+    fun decodeFromStorage(text: String): GestureMacro? =
+        runCatching { json.decodeFromString<GestureMacro>(text) }.getOrNull()
 
     /**
      * Threat T1: a shared macro that can drive other apps must arrive disabled,

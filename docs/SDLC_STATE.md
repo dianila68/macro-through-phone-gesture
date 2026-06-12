@@ -2,7 +2,7 @@
 
 > **Purpose:** any person or agent session can resume the project from this file alone.
 > **Rule:** every PR that advances a stage updates this file in the same commit.
-> Last updated: 2026-06-12 (session: feature implementation, tickets 002–005 + onboarding)
+> Last updated: 2026-06-12 (session: persistence + YAML cycles, tickets 007/008)
 
 ## The lifecycle graph
 
@@ -25,11 +25,11 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 | ThreatModeling | ✅ Done (v1) | [THREAT_MODEL.md](THREAT_MODEL.md) — STRIDE T1–T11, gating rules |
 | Architecture | ✅ Done (v1) | [ARCHITECTURE.md](ARCHITECTURE.md), ADRs 0001/0002, [`schema/gesture-macro-v1.json`](../schema/gesture-macro-v1.json); ticket-006 executed |
 | Design | ✅ Done (v1) | [DESIGN.md](DESIGN.md) — contracts for engine/sensors/actions/data/serialization |
-| Implementation | 🟡 **In progress** | 001 ✅, 003 ✅, 004 ✅, 002 code-complete (device pass → ticket-009), 005 partial (YAML → ticket-008). Full pipeline live: sensors → detectors → engine → executors; onboarding UI done. All CI-green |
+| Implementation | 🟡 **In progress** | 001 ✅, 003 ✅, 004 ✅, 005 ✅ (JSON+YAML), 002 code-complete (device pass → 009), 007 partial (HMAC/migrations remain), 008 partial (fuzz seeds remain). Pipeline + Room persistence + audit log live. All CI-green |
 | StaticAnalysis | 🟡 Partial | ktlint plugin wired (runs in `gradlew build` via `check`); Android Lint step in CI. TODO: detekt |
 | SecurityAnalysis | 🟡 Partial | T1 (accessibility disabled on import), T2 (size cap, strict decode, version dispatch), T3 (system-only binding, minimal scope), NFR-7 (executor refuses when disconnected) implemented + tested |
 | FormalVerification | ⬜ Not started | Scope decision pending — realistic target: model-check the engine state machine (cooldown/constraint logic) or exhaustive property tests; decide at M1 review |
-| UnitTesting | 🟢 **Active** | 30 JVM tests green in CI: detector trace-replay (JSON fixtures), codec strict-import/T1 policy, engine cooldown/constraints |
+| UnitTesting | 🟢 **Active** | 37 JVM tests green in CI: detector trace-replay, JSON+YAML codec (incl. anchor rejection), engine cooldown/constraints |
 | IntegrationTesting | ⬜ Not started | Needs instrumented tests / emulator job in CI (add `gradlew connectedCheck` matrix later) |
 | PerformanceTesting | ⬜ Not started | NFR-1 battery duty-cycle measurements; macrobenchmark at M3 |
 | FuzzTesting | ⬜ Not started | Targets per ADR-0002: JSON + YAML import (threat T2) |
@@ -39,12 +39,11 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 
 ## ▶ NEXT ACTIONS (in order)
 
-1. **Merge the feature PR to `main`** (branch CI-green through commit 663fa40).
-2. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart). Closes ticket-002 and M1.
-3. **ticket-007** — Room persistence + execution audit log (T4/FR-9).
-4. **ticket-008** — YAML at the import/export boundary (completes ticket-005/ADR-0002); seeds FuzzTesting corpus.
-5. **M3 UI**: macro list/editor screens over MacroStore (FR-6) + import/export pickers (FR-7).
-6. At M1 closure: re-plan checkpoint (REFACTORING_PLAN Phase 3), module split decision (M2 trigger), FormalVerification scope decision.
+1. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart, shake→flashlight E2E). Closes ticket-002 and M1. **Requires a human with a device.**
+2. **M3 UI** — macro list/editor screens over MacroStore (FR-6) + import/export via SAF pickers (FR-7) wired to MacroCodec.
+3. **ticket-007 remainder** — HMAC integrity column (Keystore-backed, T5) + migration harness; instrumented DAO tests (activates IntegrationTesting).
+4. **ticket-008 remainder** — fuzz corpus seeds for JSON/YAML import (activates FuzzTesting).
+5. At M1 closure: re-plan checkpoint (REFACTORING_PLAN Phase 3), module split decision (M2 trigger), FormalVerification scope decision (engine state machine).
 
 ## Environment notes for future sessions (important)
 
