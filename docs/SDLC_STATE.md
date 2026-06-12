@@ -2,7 +2,7 @@
 
 > **Purpose:** any person or agent session can resume the project from this file alone.
 > **Rule:** every PR that advances a stage updates this file in the same commit.
-> Last updated: 2026-06-11 (session: SDLC walk, stages Requirements → Implementation)
+> Last updated: 2026-06-12 (session: feature implementation, tickets 002–005 + onboarding)
 
 ## The lifecycle graph
 
@@ -25,11 +25,11 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 | ThreatModeling | ✅ Done (v1) | [THREAT_MODEL.md](THREAT_MODEL.md) — STRIDE T1–T11, gating rules |
 | Architecture | ✅ Done (v1) | [ARCHITECTURE.md](ARCHITECTURE.md), ADRs 0001/0002, [`schema/gesture-macro-v1.json`](../schema/gesture-macro-v1.json); ticket-006 executed |
 | Design | ✅ Done (v1) | [DESIGN.md](DESIGN.md) — contracts for engine/sensors/actions/data/serialization |
-| Implementation | 🟡 **In progress** | ticket-001 **Done** — scaffolding verified by CI run #4 (green: `gradlew build` + ktlint + Android Lint). Tickets 002–005 not started |
+| Implementation | 🟡 **In progress** | 001 ✅, 003 ✅, 004 ✅, 002 code-complete (device pass → ticket-009), 005 partial (YAML → ticket-008). Full pipeline live: sensors → detectors → engine → executors; onboarding UI done. All CI-green |
 | StaticAnalysis | 🟡 Partial | ktlint plugin wired (runs in `gradlew build` via `check`); Android Lint step in CI. TODO: detekt |
-| SecurityAnalysis | ⬜ Not started | Gate: NFR-3; first concrete task arrives with ticket-005 import path |
+| SecurityAnalysis | 🟡 Partial | T1 (accessibility disabled on import), T2 (size cap, strict decode, version dispatch), T3 (system-only binding, minimal scope), NFR-7 (executor refuses when disconnected) implemented + tested |
 | FormalVerification | ⬜ Not started | Scope decision pending — realistic target: model-check the engine state machine (cooldown/constraint logic) or exhaustive property tests; decide at M1 review |
-| UnitTesting | ⬜ Not started | First real tests: detector trace-replay (ticket-003), import rules (ticket-005) |
+| UnitTesting | 🟢 **Active** | 30 JVM tests green in CI: detector trace-replay (JSON fixtures), codec strict-import/T1 policy, engine cooldown/constraints |
 | IntegrationTesting | ⬜ Not started | Needs instrumented tests / emulator job in CI (add `gradlew connectedCheck` matrix later) |
 | PerformanceTesting | ⬜ Not started | NFR-1 battery duty-cycle measurements; macrobenchmark at M3 |
 | FuzzTesting | ⬜ Not started | Targets per ADR-0002: JSON + YAML import (threat T2) |
@@ -39,15 +39,18 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 
 ## ▶ NEXT ACTIONS (in order)
 
-1. **Open a PR from `claude/repo-criticality-flaws-review-jxpodr` to `main`** with the SDLC docs + verified scaffolding (CI already green on the branch: run #4) and merge it.
-2. **ticket-002** (`feat/ticket-002-foreground-service`): GestureCaptureService per DESIGN.md (WakeLockGuard with hard timeout, heartbeat, FGS `specialUse` + pre-34 fallback).
-3. **ticket-003** (`feat/ticket-003-sensor-listener-module`): SensorStream + shake/flip detectors + trace-replay unit tests → this activates the **UnitTesting** stage. M1 exit: flip detected screen-off < 500 ms.
-4. **ticket-004**, then **ticket-005** (ticket-005 activates **SecurityAnalysis** — import rules T1/T2 — and defines **FuzzTesting** targets).
-5. At M1 completion: re-plan checkpoint (REFACTORING_PLAN Phase 3), file M2 executor tickets, decide FormalVerification scope.
+1. **Merge the feature PR to `main`** (branch CI-green through commit 663fa40).
+2. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart). Closes ticket-002 and M1.
+3. **ticket-007** — Room persistence + execution audit log (T4/FR-9).
+4. **ticket-008** — YAML at the import/export boundary (completes ticket-005/ADR-0002); seeds FuzzTesting corpus.
+5. **M3 UI**: macro list/editor screens over MacroStore (FR-6) + import/export pickers (FR-7).
+6. At M1 closure: re-plan checkpoint (REFACTORING_PLAN Phase 3), module split decision (M2 trigger), FormalVerification scope decision.
 
 ## Environment notes for future sessions (important)
 
 - **`dl.google.com` is blocked (HTTP 403) in the remote execution sandbox** → AGP/AndroidX cannot be resolved locally; **local `gradlew build` is impossible**. Maven Central is reachable. Verification happens in **GitHub Actions** (runners have full network + Android SDK). Push to a `claude/**` or convention branch to trigger CI.
 - No Android SDK locally (`ANDROID_HOME` unset); Gradle 8.14 + JDK 21 available at `/opt/gradle` / `/usr/bin/java` (wrapper pins 8.11.1, JDK 17 in CI).
 - Remote `origin` redirects: canonical URL is now `https://github.com/dianila68/macro-through-phone-gesture.git` (repo renamed, trailing hyphen dropped).
+- **ktlint can be verified locally**: fat-jar CLI from Maven Central (`com.pinterest.ktlint:ktlint-cli:1.2.1`, classifier `all`) → `java -jar ktlint.jar "app/src/**/*.kt"`. Style pinned to `intellij_idea` in `.editorconfig` — the `ktlint_official` default caused CI failure run #6.
+- Compilation still CANNOT be verified locally (dl.google.com blocked) — push and watch CI; GitHub MCP `actions_list` output overflows, parse the saved JSON file with python instead.
 - Process docs: tickets in [`../tickets/`](../tickets/), workflow rules in [`../CONTRIBUTING.md`](../CONTRIBUTING.md), threat gates in [THREAT_MODEL.md](THREAT_MODEL.md).

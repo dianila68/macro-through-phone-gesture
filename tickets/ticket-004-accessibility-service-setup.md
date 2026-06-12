@@ -2,7 +2,7 @@
 
 - **Milestone:** M2
 - **Priority:** P1
-- **Status:** In Progress (service declared with minimal scope, connection-state flow, global-action executor; onboarding UI pending)
+- **Status:** Done (2026-06-12 — declaration, minimal scope, connection flow, onboarding card, global-action executor; smoke action runs via an accessibility macro)
 - **Dependencies:** ticket-001, ticket-002
 
 ## Description
