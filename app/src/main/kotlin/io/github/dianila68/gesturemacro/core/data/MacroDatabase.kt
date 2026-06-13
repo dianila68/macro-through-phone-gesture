@@ -10,14 +10,15 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import io.github.dianila68.gesturemacro.core.serialization.GestureMacro
-import io.github.dianila68.gesturemacro.core.serialization.MacroCodec
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 /**
  * The macro document is stored as canonical JSON (single source of truth:
  * the Kotlin models); enabled is mirrored to a column so toggling does not
- * rewrite the document.
+ * rewrite the document. [integritySeal] holds the threat-T5 HMAC for macros
+ * that can drive other apps (see [MacroIntegrity]); null for unsealed macros.
  */
 @Entity(tableName = "macros")
 data class MacroEntity(
@@ -25,18 +26,8 @@ data class MacroEntity(
     val name: String,
     val enabled: Boolean,
     val document: String,
-) {
-    fun toMacro(): GestureMacro? = MacroCodec.decodeFromStorage(document)?.copy(enabled = enabled)
-
-    companion object {
-        fun from(macro: GestureMacro) = MacroEntity(
-            id = macro.id,
-            name = macro.name,
-            enabled = macro.enabled,
-            document = MacroCodec.encodeForStorage(macro),
-        )
-    }
-}
+    val integritySeal: String? = null,
+)
 
 /** Audit trail for executed macros (threat T4, FR-9). */
 @Entity(tableName = "execution_log")
@@ -73,13 +64,21 @@ interface MacroDao {
     fun observeRecentLogs(limit: Int = 50): Flow<List<ExecutionLogEntity>>
 }
 
-@Database(entities = [MacroEntity::class, ExecutionLogEntity::class], version = 1, exportSchema = false)
+@Database(entities = [MacroEntity::class, ExecutionLogEntity::class], version = 2, exportSchema = true)
 abstract class MacroDatabase : RoomDatabase() {
     abstract fun macroDao(): MacroDao
 
     companion object {
+        /** v1 → v2: add the nullable threat-T5 integrity seal column (existing rows seal = NULL). */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE macros ADD COLUMN integritySeal TEXT")
+            }
+        }
+
         fun build(context: Context): MacroDatabase =
             Room.databaseBuilder(context.applicationContext, MacroDatabase::class.java, "macros.db")
+                .addMigrations(MIGRATION_1_2)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
     }

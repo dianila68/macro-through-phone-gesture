@@ -37,6 +37,11 @@ android {
     }
 }
 
+// Room schema export (ticket-007): committed schemas back the migration test harness.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
