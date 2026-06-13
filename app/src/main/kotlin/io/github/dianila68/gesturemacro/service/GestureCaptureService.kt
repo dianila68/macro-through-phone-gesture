@@ -21,11 +21,9 @@ import io.github.dianila68.gesturemacro.core.actions.MediaControlExecutor
 import io.github.dianila68.gesturemacro.core.data.MacroStore
 import io.github.dianila68.gesturemacro.core.engine.MacroEngine
 import io.github.dianila68.gesturemacro.core.sensors.AndroidSensorStream
-import io.github.dianila68.gesturemacro.core.sensors.FlipDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureEvent
-import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
 import io.github.dianila68.gesturemacro.core.sensors.SensorType
-import io.github.dianila68.gesturemacro.core.sensors.ShakeDetector
+import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -79,11 +77,8 @@ class GestureCaptureService : Service() {
 
     private fun startPipeline() {
         if (pipelineJob != null) return
-        val detectors = listOf(
-            ShakeDetector(),
-            FlipDetector(GesturePattern.FLIP_FACE_DOWN),
-            FlipDetector(GesturePattern.FLIP_FACE_UP),
-        )
+        // One detector per available trigger — the catalog is the single source of truth.
+        val detectors = TriggerLibrary.detectors()
         pipelineJob = scope.launch {
             AndroidSensorStream(this@GestureCaptureService)
                 .samples(SensorType.ACCELEROMETER, samplingPeriodUs = SAMPLING_PERIOD_US)

@@ -78,6 +78,20 @@ fun MacroManagerSection() {
         }
     }
 
+    var editorTarget by remember { mutableStateOf<EditorTarget?>(null) }
+
+    editorTarget?.let { target ->
+        MacroEditorScreen(
+            initial = (target as? EditorTarget.Edit)?.macro,
+            onSave = {
+                MacroStore.upsert(it)
+                editorTarget = null
+            },
+            onCancel = { editorTarget = null },
+        )
+        return
+    }
+
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = "Macros", style = MaterialTheme.typography.titleMedium)
         macros.forEach { macro ->
@@ -85,6 +99,7 @@ fun MacroManagerSection() {
                 macro = macro,
                 onToggle = { MacroStore.setEnabled(macro.id, it) },
                 onDelete = { MacroStore.remove(macro.id) },
+                onEdit = { editorTarget = EditorTarget.Edit(macro) },
                 onExport = {
                     exportCandidate = macro
                     exportLauncher.launch("${macro.name.replace(' ', '_')}.json")
@@ -105,12 +120,27 @@ fun MacroManagerSection() {
         }) {
             Text(text = "Import macro (JSON/YAML)")
         }
+        OutlinedButton(onClick = { editorTarget = EditorTarget.New }) {
+            Text(text = "New macro (full editor)")
+        }
         MacroCreatorSection()
     }
 }
 
+private sealed interface EditorTarget {
+    data object New : EditorTarget
+
+    data class Edit(val macro: GestureMacro) : EditorTarget
+}
+
 @Composable
-private fun MacroRow(macro: GestureMacro, onToggle: (Boolean) -> Unit, onDelete: () -> Unit, onExport: () -> Unit) {
+private fun MacroRow(
+    macro: GestureMacro,
+    onToggle: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit,
+    onExport: () -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
@@ -126,6 +156,7 @@ private fun MacroRow(macro: GestureMacro, onToggle: (Boolean) -> Unit, onDelete:
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onEdit) { Text(text = "Edit") }
                 TextButton(onClick = onExport) { Text(text = "Export") }
                 TextButton(onClick = onDelete) { Text(text = "Delete") }
             }
