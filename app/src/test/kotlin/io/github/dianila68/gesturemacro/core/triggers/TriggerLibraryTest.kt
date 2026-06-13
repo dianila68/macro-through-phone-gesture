@@ -38,6 +38,7 @@ class TriggerLibraryTest {
         assertEquals(
             setOf(
                 GesturePattern.SHAKE,
+                GesturePattern.DOUBLE_SHAKE,
                 GesturePattern.FLIP_FACE_DOWN,
                 GesturePattern.FLIP_FACE_UP,
             ),

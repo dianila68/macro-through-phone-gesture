@@ -1,5 +1,6 @@
 package io.github.dianila68.gesturemacro.core.triggers
 
+import io.github.dianila68.gesturemacro.core.sensors.DoubleShakeDetector
 import io.github.dianila68.gesturemacro.core.sensors.FlipDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
@@ -84,10 +85,10 @@ object TriggerLibrary {
             sensor = SensorKind.ACCELEROMETER,
             displayName = "Double shake",
             description = "Two distinct shake bursts in quick succession.",
-            available = false,
+            available = true,
             defaultCooldownMs = 2_000,
-            sensitivityHint = "Planned — no detector wired yet.",
-            detectorFactory = null,
+            sensitivityHint = "Higher = gentler shakes count (may also trip a single-shake macro).",
+            detectorFactory = { s -> DoubleShakeDetector(s) },
         ),
         TriggerSpec(
             pattern = PatternKind.TWIST,
