@@ -39,6 +39,11 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 
 ## ▶ NEXT ACTIONS (in order)
 
+> **Full dependency-ordered backlog (all open tickets, parallel tracks, critical path):** [BACKLOG.md](BACKLOG.md).
+> **Core/app separation architecture:** [ADR-0003](adr/0003-core-app-separation.md) (tickets 021–029).
+> New since last session: action-catalog feature (016–018), field bugs (019 app-launch, 020 proximity), core/app refactor (021–029).
+
+
 1. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart, shake→flashlight E2E). Closes ticket-002 and M1. **Requires a human with a device.**
 2. **ticket-010** ✅ — full macro editor shipped (`ui/MacroEditor.kt`): trigger picker + sensitivity + cooldown, screen/time constraints, ordered multi-action builder, prefilled edit. Backed by `core/triggers/TriggerLibrary`. Follow-up: lift editor state into a ViewModel at the M2 module split; per-field validation.
 3. **IntegrationTesting** ✅ — emulator CI job wired (`reactivecircus/android-emulator-runner@v2`, API 29); `MacroMigrationTest` + `MacroDaoIntegrationTest` merged. Next: add `MigrationTestHelper` second pass once schema hash is confirmed green by CI; add DAO flow-assertion tests for multi-macro scenarios.
