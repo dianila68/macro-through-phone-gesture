@@ -2,7 +2,9 @@ package io.github.dianila68.gesturemacro.core.data
 
 import android.content.Context
 import io.github.dianila68.gesturemacro.core.actions.ExecResult
+import io.github.dianila68.gesturemacro.core.security.KeystoreSealerFactory
 import io.github.dianila68.gesturemacro.core.serialization.GestureMacro
+import io.github.dianila68.gesturemacro.core.serialization.MacroCodec
 import io.github.dianila68.gesturemacro.core.serialization.PatternKind
 import io.github.dianila68.gesturemacro.core.serialization.SensorKind
 import io.github.dianila68.gesturemacro.core.serialization.SystemToggleAction
@@ -21,6 +23,7 @@ object MacroStore {
     private val state = MutableStateFlow<List<GestureMacro>>(emptyList())
     private var dao: MacroDao? = null
     private var scope: CoroutineScope? = null
+    private var integrity = MacroIntegrity(null)
 
     val macros: StateFlow<List<GestureMacro>> = state
 
@@ -29,16 +32,22 @@ object MacroStore {
         val database = MacroDatabase.build(context)
         dao = database.macroDao()
         scope = appScope
+        integrity = MacroIntegrity(KeystoreSealerFactory.create())
         appScope.launch {
             seedIfEmpty()
             database.macroDao().observeAll().collect { entities ->
-                state.value = entities.mapNotNull { it.toMacro() }
+                state.value = entities.mapNotNull { entity ->
+                    val macro = MacroCodec.decodeFromStorage(entity.document)
+                        ?.copy(enabled = entity.enabled)
+                        ?: return@mapNotNull null
+                    integrity.verifyOnLoad(macro, entity.document, entity.integritySeal)
+                }
             }
         }
     }
 
     fun upsert(macro: GestureMacro) {
-        launchOnDao { it.upsert(MacroEntity.from(macro)) }
+        launchOnDao { it.upsert(toEntity(macro)) }
     }
 
     fun remove(id: String) {
@@ -75,10 +84,21 @@ object MacroStore {
         scope?.launch { block(d) }
     }
 
+    private fun toEntity(macro: GestureMacro): MacroEntity {
+        val document = MacroCodec.encodeForStorage(macro)
+        return MacroEntity(
+            id = macro.id,
+            name = macro.name,
+            enabled = macro.enabled,
+            document = document,
+            integritySeal = integrity.sealFor(document, macro),
+        )
+    }
+
     private suspend fun seedIfEmpty() {
         val d = dao ?: return
         if (d.count() == 0) {
-            d.upsert(MacroEntity.from(builtInShakeFlashlight()))
+            d.upsert(toEntity(builtInShakeFlashlight()))
         }
     }
 
