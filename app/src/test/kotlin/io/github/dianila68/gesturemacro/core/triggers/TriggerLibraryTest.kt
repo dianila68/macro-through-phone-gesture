@@ -43,6 +43,7 @@ class TriggerLibraryTest {
                 GesturePattern.FLIP_FACE_DOWN,
                 GesturePattern.FLIP_FACE_UP,
                 GesturePattern.TWIST,
+                GesturePattern.PROXIMITY_WAVE,
             ),
             detectorPatterns,
         )
@@ -62,8 +63,9 @@ class TriggerLibraryTest {
     }
 
     @Test
-    fun `available is a strict subset that all advertise availability`() {
+    fun `available contains only available specs and never exceeds the catalog`() {
         assertTrue(TriggerLibrary.available.all { it.available })
-        assertTrue(TriggerLibrary.available.size < TriggerLibrary.all.size)
+        assertTrue(TriggerLibrary.available.isNotEmpty())
+        assertTrue(TriggerLibrary.available.size <= TriggerLibrary.all.size)
     }
 }

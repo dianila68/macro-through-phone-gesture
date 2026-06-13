@@ -4,6 +4,7 @@ import io.github.dianila68.gesturemacro.core.sensors.DoubleShakeDetector
 import io.github.dianila68.gesturemacro.core.sensors.FlipDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
+import io.github.dianila68.gesturemacro.core.sensors.ProximityWaveDetector
 import io.github.dianila68.gesturemacro.core.sensors.ShakeDetector
 import io.github.dianila68.gesturemacro.core.sensors.TwistDetector
 import io.github.dianila68.gesturemacro.core.serialization.PatternKind
@@ -106,10 +107,10 @@ object TriggerLibrary {
             sensor = SensorKind.PROXIMITY,
             displayName = "Proximity wave",
             description = "Wave a hand just over the top of the screen.",
-            available = false,
+            available = true,
             defaultCooldownMs = 2_000,
-            sensitivityHint = "Planned — needs the proximity sensor stream.",
-            detectorFactory = null,
+            sensitivityHint = "Higher = a less complete cover still counts as a wave.",
+            detectorFactory = { s -> ProximityWaveDetector(s) },
         ),
     )
 

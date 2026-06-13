@@ -2,7 +2,7 @@
 
 - **Milestone:** M1
 - **Priority:** P2
-- **Status:** Backlog
+- **Status:** Done (2026-06-13)
 - **Dependencies:** ticket-011
 
 ## Description
@@ -13,16 +13,18 @@ from planned to available.
 
 ## Acceptance criteria
 
-- [ ] `ProximityWaveDetector` (pure JVM, `sensor = SensorType.PROXIMITY`): detect a
-      near→far (or far→near→far) transition within a short window. Most proximity
-      sensors are coarse (binary near/far, ~0 cm vs max range) — detect on the
-      reported distance crossing a threshold, not on absolute value.
-- [ ] Handle single-value sensor events (`event.values.size == 1`); `SensorSample.v`
-      may carry one element. Confirm detectors that assume `size >= 3` are unaffected.
-- [ ] Promote the library entry (`available = true`, detector factory) so the editor
-      offers it and the service subscribes to the proximity sensor automatically.
-- [ ] JVM trace-replay tests: positive wave, a hand resting near (no false fire),
-      and accelerometer/gyroscope samples ignored.
+- [x] `ProximityWaveDetector` (pure JVM, `sensor = SensorType.PROXIMITY`): far→near→far
+      where the cover lasts `MIN_COVER_MS..MAX_COVER_MS`; below is flicker, above is
+      pocket/face-down. Threshold (`v[0] < nearThreshold`) widens with sensitivity.
+- [x] Handles single-value sensor events: `feed` guards on `v.isEmpty()` and reads
+      `v[0]`. The merged pipeline feeds proximity samples to accel/gyro detectors too,
+      but they short-circuit on `sample.sensor != …` before touching `v`, so the
+      `size >= 3` assumption is never reached for them.
+- [x] Promoted the library entry (`available = true`, detector factory); ticket-013's
+      demand-driven pipeline subscribes to the proximity sensor only when an enabled
+      macro uses this trigger.
+- [x] JVM trace-replay tests: positive wave, long-cover pocket (no fire), single-value
+      reading, and accelerometer samples ignored. All six triggers are now live.
 
 ## Technical notes
 
