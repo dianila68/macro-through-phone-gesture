@@ -2,7 +2,7 @@
 
 > **Purpose:** any person or agent session can resume the project from this file alone.
 > **Rule:** every PR that advances a stage updates this file in the same commit.
-> Last updated: 2026-06-12 (session: persistence + YAML cycles, tickets 007/008)
+> Last updated: 2026-06-13 (session: IntegrationTesting emulator CI + DAO instrumented tests)
 
 ## The lifecycle graph
 
@@ -25,12 +25,12 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 | ThreatModeling | ✅ Done (v1) | [THREAT_MODEL.md](THREAT_MODEL.md) — STRIDE T1–T11, gating rules |
 | Architecture | ✅ Done (v1) | [ARCHITECTURE.md](ARCHITECTURE.md), ADRs 0001/0002, [`schema/gesture-macro-v1.json`](../schema/gesture-macro-v1.json); ticket-006 executed |
 | Design | ✅ Done (v1) | [DESIGN.md](DESIGN.md) — contracts for engine/sensors/actions/data/serialization |
-| Implementation | 🟡 **In progress** | 001 ✅, 003 ✅, 004 ✅, 005 ✅ (JSON+YAML), 002 code-complete (device pass → 009), 007 ✅ (HMAC sealing + migration), 008 ✅. Pipeline + Room persistence + audit log live. All CI-green |
+| Implementation | 🟡 **In progress** | 001 ✅, 003 ✅, 004 ✅, 005 ✅ (JSON+YAML), 002 code-complete (device pass → 009), 007 ✅ (HMAC sealing + migration), 008 ✅. Pipeline + Room persistence + audit log live. All CI-green. Schema v1+v2 JSON committed |
 | StaticAnalysis | 🟡 Partial | ktlint plugin wired (runs in `gradlew build` via `check`); Android Lint step in CI. TODO: detekt |
 | SecurityAnalysis | 🟡 Partial | T1 (accessibility disabled on import), T2 (size cap, strict decode, version dispatch), T3 (system-only binding, minimal scope), T5 (Keystore HMAC seal, fail-closed on load), NFR-7 (executor refuses when disconnected) implemented + tested |
 | FormalVerification | ⬜ Not started | Scope decision pending — realistic target: model-check the engine state machine (cooldown/constraint logic) or exhaustive property tests; decide at M1 review |
 | UnitTesting | 🟢 **Active** | 37 JVM tests green in CI: detector trace-replay, JSON+YAML codec (incl. anchor rejection), engine cooldown/constraints |
-| IntegrationTesting | ⬜ Not started | Needs emulator job in CI; first targets: Room `MigrationTestHelper` (v1→v2) + DAO tests. Add `gradlew connectedCheck` matrix |
+| IntegrationTesting | 🟡 **In progress** | Emulator CI job added (`connectedDebugAndroidTest`, API 29, `reactivecircus/android-emulator-runner@v2`); `MacroMigrationTest` (MigrationTestHelper v1→v2, PRAGMA column check) + `MacroDaoIntegrationTest` (round-trip, seal preservation, tamper fail-closed, execution-log) written; schema JSONs v1+v2 committed |
 | PerformanceTesting | ⬜ Not started | NFR-1 battery duty-cycle measurements; macrobenchmark at M3 |
 | FuzzTesting | 🟡 Seeded | 12-seed corpus + fail-closed regression test in CI (FuzzCorpusTest); continuous fuzzing harness still TODO |
 | CodeReview | ⬜ Recurring gate | Every PR; security-sensitive areas rule in CONTRIBUTING |
@@ -41,7 +41,7 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 
 1. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart, shake→flashlight E2E). Closes ticket-002 and M1. **Requires a human with a device.**
 2. **ticket-010** — macro editor screen (FR-6 remainder; list/toggle/delete/import/export + quick-add shipped already).
-3. **IntegrationTesting** — add an emulator CI job (`connectedCheck`); first targets: Room `MigrationTestHelper` (v1→v2) and DAO round-trip incl. integrity-seal fail-closed on a tampered row.
+3. **IntegrationTesting** ✅ — emulator CI job wired (`reactivecircus/android-emulator-runner@v2`, API 29); `MacroMigrationTest` + `MacroDaoIntegrationTest` merged. Next: add `MigrationTestHelper` second pass once schema hash is confirmed green by CI; add DAO flow-assertion tests for multi-macro scenarios.
 4. At M1 closure: re-plan checkpoint (REFACTORING_PLAN Phase 3), module split decision (M2 trigger), FormalVerification scope decision (engine state machine).
 
 ## Environment notes for future sessions (important)
