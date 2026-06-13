@@ -1,0 +1,1 @@
+{"version":1,"id":"x","name":"y","trigger":{"sensor":"accelerometer","pattern":"shake"},"actions":[{"type":"root_shell","target":"sh"}]}

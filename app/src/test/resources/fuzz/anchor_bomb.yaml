@@ -1,0 +1,9 @@
+version: 1
+id: &a "x"
+name: *a
+bomb: &b [*a, *a, *a]
+more: &c [*b, *b, *b]
+trigger:
+  sensor: "accelerometer"
+  pattern: "shake"
+actions: [*c]

@@ -21,8 +21,10 @@ data class GestureMacro(
         require(name.isNotBlank() && name.length <= MAX_NAME_LENGTH) {
             "name must be 1..$MAX_NAME_LENGTH characters"
         }
+        require(name.none { it.isISOControl() }) { "name must not contain control characters" }
         require(actions.isNotEmpty()) { "actions must not be empty" }
         require(id.isNotBlank()) { "id must not be blank" }
+        require(id.none { it.isISOControl() }) { "id must not contain control characters" }
     }
 
     companion object {
