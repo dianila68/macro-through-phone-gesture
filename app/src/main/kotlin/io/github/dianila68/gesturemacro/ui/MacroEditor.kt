@@ -2,6 +2,7 @@ package io.github.dianila68.gesturemacro.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -194,6 +195,7 @@ private fun TriggerSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ConstraintsSection(
     screenState: ScreenState,
@@ -244,6 +246,7 @@ private fun ConstraintsSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ActionsSection(actions: SnapshotStateList<DraftAction>) {
     Card(modifier = Modifier.fillMaxWidth()) {
