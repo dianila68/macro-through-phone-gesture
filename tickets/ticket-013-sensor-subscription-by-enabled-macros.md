@@ -2,7 +2,7 @@
 
 - **Milestone:** M1
 - **Priority:** P1
-- **Status:** Backlog
+- **Status:** Done (2026-06-13)
 - **Dependencies:** ticket-011
 
 ## Description
@@ -18,17 +18,22 @@ subscribe to the sensors those detectors consume.
 
 ## Acceptance criteria
 
-- [ ] Derive the active `PatternKind` set from `MacroStore.macros` filtered to `enabled`.
-- [ ] Build detectors only for patterns in that set (via `TriggerLibrary.forPattern`).
-- [ ] Subscribe to the distinct `SensorType`s of those detectors only.
-- [ ] React to macro changes: when the enabled set changes (toggle/add/remove), the
-      pipeline re-subscribes without dropping in-flight gestures unnecessarily. A
-      simple restart of the pipeline job on a debounced macros change is acceptable.
-- [ ] With zero enabled macros, no sensor listeners are registered.
+- [x] Derive the active `PatternKind` set from `MacroStore.macros` filtered to `enabled`.
+- [x] Build detectors only for patterns in that set (via `TriggerLibrary.forPattern`).
+- [x] Subscribe to the distinct `SensorType`s of those detectors only.
+- [x] React to macro changes: `distinctUntilChanged` + `debounce(300ms)` + `flatMapLatest`
+      rebuilds the detector/sensor set when the enabled pattern set changes.
+- [x] With zero enabled macros, `detectorStream` returns `emptyFlow()` → no sensor
+      listeners are registered.
 
-## Technical notes
+## Technical notes / outcome
 
-- `MacroStore.macros` is a hot `StateFlow`; collect it and `flatMapLatest`/restart
-  the sensor collection on change. Keep the engine-cooldown state if feasible, or
-  document the reset on re-subscribe.
-- Watch the cost of frequent re-subscription if a user toggles rapidly — debounce.
+- Implemented in `GestureCaptureService.startPipeline`: `MacroStore.macros` →
+  enabled-pattern set → `distinctUntilChanged` → `debounce` → `flatMapLatest` →
+  merged sensor streams. `flatMapLatest` cancels the previous sensor collection on
+  change, so detectors are rebuilt fresh (engine cooldown state resets on
+  re-subscribe — acceptable, the cooldown is per-macro and short).
+- **Behavior change:** the UI "last gesture" readout now only updates for patterns
+  that an enabled macro uses (previously any detected gesture). This is arguably
+  more correct and was accepted.
+- 300 ms debounce absorbs the empty→seeded startup transition and rapid toggles.

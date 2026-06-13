@@ -21,17 +21,27 @@ import io.github.dianila68.gesturemacro.core.actions.MediaControlExecutor
 import io.github.dianila68.gesturemacro.core.data.MacroStore
 import io.github.dianila68.gesturemacro.core.engine.MacroEngine
 import io.github.dianila68.gesturemacro.core.sensors.AndroidSensorStream
+import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureEvent
+import io.github.dianila68.gesturemacro.core.sensors.SensorSample
+import io.github.dianila68.gesturemacro.core.serialization.PatternKind
 import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -75,27 +85,46 @@ class GestureCaptureService : Service() {
         return START_STICKY
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun startPipeline() {
         if (pipelineJob != null) return
-        // One detector per available trigger — the catalog is the single source of truth.
-        val detectors = TriggerLibrary.detectors()
-        // Subscribe to exactly the sensors the detectors consume (e.g. gyroscope only
-        // joins when a twist trigger is live). Every sample reaches every detector;
-        // detectors ignore samples from other sensors, so the cross-feed is free.
         val stream = AndroidSensorStream(this@GestureCaptureService)
-        val streams = detectors.map { it.sensor }.distinct().map { sensorType ->
-            stream.samples(sensorType, samplingPeriodUs = SAMPLING_PERIOD_US)
-        }
+        // The active detector/sensor set tracks the *enabled* macros: when no enabled
+        // macro uses a pattern, its detector never runs and its sensor is never
+        // registered (NFR-1 — the gyroscope stays off unless a twist macro is on).
         pipelineJob = scope.launch {
-            merge(*streams.toTypedArray())
+            MacroStore.macros
+                .map { macros -> macros.filter { it.enabled }.map { it.trigger.pattern }.toSet() }
+                .distinctUntilChanged()
+                .debounce(MACRO_CHANGE_DEBOUNCE_MS)
+                .flatMapLatest { patterns -> detectorStream(stream, patterns) }
                 .catch { e -> Log.w(TAG, "Sensor stream ended: ${e.message}") }
-                .collect { sample ->
+                .collect { (detectors, sample) ->
                     for (detector in detectors) {
                         val event = detector.feed(sample) ?: continue
                         onGesture(event)
                     }
                 }
         }
+    }
+
+    /**
+     * Detectors for the currently enabled trigger [patterns], merged over only the
+     * sensors they need. Patterns without an available detector contribute nothing,
+     * so an empty set registers no sensors at all. Each sample is paired with the
+     * detector list that must see it (every detector is fed to keep its state in
+     * step; detectors ignore samples from other sensors).
+     */
+    private fun detectorStream(
+        stream: AndroidSensorStream,
+        patterns: Set<PatternKind>,
+    ): Flow<Pair<List<GestureDetector>, SensorSample>> {
+        val detectors = patterns.mapNotNull { TriggerLibrary.forPattern(it)?.buildDetector() }
+        if (detectors.isEmpty()) return emptyFlow()
+        val streams = detectors.map { it.sensor }.distinct().map { sensorType ->
+            stream.samples(sensorType, samplingPeriodUs = SAMPLING_PERIOD_US)
+        }
+        return merge(*streams.toTypedArray()).map { sample -> detectors to sample }
     }
 
     private fun onGesture(event: GestureEvent) {
@@ -172,6 +201,9 @@ class GestureCaptureService : Service() {
         const val CHANNEL_ID = "gesture_engine"
         const val NOTIFICATION_ID = 1001
         const val HEARTBEAT_INTERVAL_MS = 60_000L
+
+        /** Settle window so rapid macro toggles re-subscribe sensors once, not per keystroke. */
+        const val MACRO_CHANGE_DEBOUNCE_MS = 300L
 
         /** 50 Hz: responsive enough for FR-2 latency while staying battery-sane (NFR-1). */
         const val SAMPLING_PERIOD_US = 20_000
