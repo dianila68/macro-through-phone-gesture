@@ -1,0 +1,1 @@
+{"version":1,"version":2,"id":"x","id":"y","name":"n","trigger":{"sensor":"accelerometer","pattern":"shake"},"actions":[{"type":"system_toggle","target":"flashlight"}]}

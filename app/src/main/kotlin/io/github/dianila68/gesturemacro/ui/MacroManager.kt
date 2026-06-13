@@ -105,6 +105,7 @@ fun MacroManagerSection() {
         }) {
             Text(text = "Import macro (JSON/YAML)")
         }
+        MacroCreatorSection()
     }
 }
 

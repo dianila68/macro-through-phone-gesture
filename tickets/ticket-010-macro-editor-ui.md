@@ -2,7 +2,7 @@
 
 - **Milestone:** M3
 - **Priority:** P1
-- **Status:** Backlog
+- **Status:** Backlog (quick-add creator shipped: name + pattern + single preset action; full editor remains)
 - **Dependencies:** ticket-007
 
 ## Description

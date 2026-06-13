@@ -32,7 +32,7 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 | UnitTesting | 🟢 **Active** | 37 JVM tests green in CI: detector trace-replay, JSON+YAML codec (incl. anchor rejection), engine cooldown/constraints |
 | IntegrationTesting | ⬜ Not started | Needs instrumented tests / emulator job in CI (add `gradlew connectedCheck` matrix later) |
 | PerformanceTesting | ⬜ Not started | NFR-1 battery duty-cycle measurements; macrobenchmark at M3 |
-| FuzzTesting | ⬜ Not started | Targets per ADR-0002: JSON + YAML import (threat T2) |
+| FuzzTesting | 🟡 Seeded | 12-seed corpus + fail-closed regression test in CI (FuzzCorpusTest); continuous fuzzing harness still TODO |
 | CodeReview | ⬜ Recurring gate | Every PR; security-sensitive areas rule in CONTRIBUTING |
 | Deployment | ⬜ Not started | Internal track / GitHub releases; needs signing setup (out of VCS) |
 | Monitoring | ⬜ Not started | In-app diagnostics (FR-9) is the v1 "monitoring"; no remote telemetry (NFR-4) |
@@ -42,7 +42,6 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 1. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart, shake→flashlight E2E). Closes ticket-002 and M1. **Requires a human with a device.**
 2. **ticket-010** — macro editor screen (FR-6 remainder; list/toggle/delete/import/export shipped in the manager section).
 3. **ticket-007 remainder** — HMAC integrity column (Keystore-backed, T5) + migration harness; instrumented DAO tests (activates IntegrationTesting).
-4. **ticket-008 remainder** — fuzz corpus seeds for JSON/YAML import (activates FuzzTesting).
 5. At M1 closure: re-plan checkpoint (REFACTORING_PLAN Phase 3), module split decision (M2 trigger), FormalVerification scope decision (engine state machine).
 
 ## Environment notes for future sessions (important)

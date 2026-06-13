@@ -1,0 +1,1 @@
+{"version":1,"id":"x","name":"y","trigger":{"sensor":"accelerometer","pattern":"shake","sensitivity":-3.5,"cooldown_ms":-1},"actions":[{"type":"system_toggle","target":"flashlight"}]}
