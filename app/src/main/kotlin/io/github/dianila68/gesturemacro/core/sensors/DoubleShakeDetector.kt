@@ -12,6 +12,7 @@ package io.github.dianila68.gesturemacro.core.sensors
  */
 class DoubleShakeDetector(sensitivity: Float = 0.5f) : GestureDetector {
     override val pattern = GesturePattern.DOUBLE_SHAKE
+    override val sensor = SensorType.ACCELEROMETER
 
     private val inner = ShakeDetector(sensitivity)
     private var firstShakeAt = Long.MIN_VALUE

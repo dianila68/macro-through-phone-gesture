@@ -10,6 +10,8 @@ class FlipDetector(
     sensitivity: Float = 0.5f,
 ) : GestureDetector {
 
+    override val sensor = SensorType.ACCELEROMETER
+
     init {
         require(pattern == GesturePattern.FLIP_FACE_DOWN || pattern == GesturePattern.FLIP_FACE_UP) {
             "FlipDetector supports flip patterns only"

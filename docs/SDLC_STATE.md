@@ -2,7 +2,7 @@
 
 > **Purpose:** any person or agent session can resume the project from this file alone.
 > **Rule:** every PR that advances a stage updates this file in the same commit.
-> Last updated: 2026-06-13 (session: trigger library + editor, double-shake detector)
+> Last updated: 2026-06-13 (session: gyroscope twist trigger + multi-sensor pipeline; tickets 011–015)
 
 ## The lifecycle graph
 
@@ -25,7 +25,7 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 | ThreatModeling | ✅ Done (v1) | [THREAT_MODEL.md](THREAT_MODEL.md) — STRIDE T1–T11, gating rules |
 | Architecture | ✅ Done (v1) | [ARCHITECTURE.md](ARCHITECTURE.md), ADRs 0001/0002, [`schema/gesture-macro-v1.json`](../schema/gesture-macro-v1.json); ticket-006 executed |
 | Design | ✅ Done (v1) | [DESIGN.md](DESIGN.md) — contracts for engine/sensors/actions/data/serialization |
-| Implementation | 🟡 **In progress** | 001 ✅, 003 ✅, 004 ✅, 005 ✅ (JSON+YAML), 002 code-complete (device pass → 009), 007 ✅ (HMAC sealing + migration), 008 ✅, 010 ✅ (full editor + trigger library). Pipeline + Room persistence + audit log live. `TriggerLibrary` is the single source of truth for triggers (editor offers them, service builds detectors from them); 4 of 6 live (shake, double-shake, flip up/down — twist & proximity-wave still planned). All CI-green. Schema v1+v2 JSON committed |
+| Implementation | 🟡 **In progress** | 001 ✅, 003 ✅, 004 ✅, 005 ✅ (JSON+YAML), 002 code-complete (device pass → 009), 007 ✅ (HMAC sealing + migration), 008 ✅, 010 ✅ (full editor + trigger library). Pipeline + Room persistence + audit log live. `TriggerLibrary` is the single source of truth for triggers (editor offers them, service builds detectors + subscribes to sensors from them); 5 of 6 live (shake, double-shake, flip up/down, twist — proximity-wave still planned, ticket-012). Multi-sensor pipeline merges accelerometer + gyroscope streams. All CI-green. Schema v1+v2 JSON committed |
 | StaticAnalysis | 🟡 Partial | ktlint plugin wired (runs in `gradlew build` via `check`); Android Lint step in CI. TODO: detekt |
 | SecurityAnalysis | 🟡 Partial | T1 (accessibility disabled on import), T2 (size cap, strict decode, version dispatch), T3 (system-only binding, minimal scope), T5 (Keystore HMAC seal, fail-closed on load), NFR-7 (executor refuses when disconnected) implemented + tested |
 | FormalVerification | ⬜ Not started | Scope decision pending — realistic target: model-check the engine state machine (cooldown/constraint logic) or exhaustive property tests; decide at M1 review |
@@ -42,7 +42,10 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 1. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart, shake→flashlight E2E). Closes ticket-002 and M1. **Requires a human with a device.**
 2. **ticket-010** ✅ — full macro editor shipped (`ui/MacroEditor.kt`): trigger picker + sensitivity + cooldown, screen/time constraints, ordered multi-action builder, prefilled edit. Backed by `core/triggers/TriggerLibrary`. Follow-up: lift editor state into a ViewModel at the M2 module split; per-field validation.
 3. **IntegrationTesting** ✅ — emulator CI job wired (`reactivecircus/android-emulator-runner@v2`, API 29); `MacroMigrationTest` + `MacroDaoIntegrationTest` merged. Next: add `MigrationTestHelper` second pass once schema hash is confirmed green by CI; add DAO flow-assertion tests for multi-macro scenarios.
-4. At M1 closure: re-plan checkpoint (REFACTORING_PLAN Phase 3), module split decision (M2 trigger), FormalVerification scope decision (engine state machine).
+4. **ticket-013** — subscribe only to sensors needed by *enabled* macros (NFR-1 battery; the gyroscope is currently always-on whenever twist is available). High value, self-contained.
+5. **ticket-012** — proximity-wave trigger (last planned trigger; needs single-value sensor handling).
+6. **ticket-014** (detekt) / **ticket-015** (continuous fuzzing) — finish StaticAnalysis and FuzzTesting stages.
+7. At M1 closure: re-plan checkpoint (REFACTORING_PLAN Phase 3), module split decision (M2 trigger), FormalVerification scope decision (engine state machine).
 
 ## Environment notes for future sessions (important)
 

@@ -1,6 +1,7 @@
 package io.github.dianila68.gesturemacro.core.triggers
 
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
+import io.github.dianila68.gesturemacro.core.sensors.SensorType
 import io.github.dianila68.gesturemacro.core.serialization.PatternKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -41,9 +42,17 @@ class TriggerLibraryTest {
                 GesturePattern.DOUBLE_SHAKE,
                 GesturePattern.FLIP_FACE_DOWN,
                 GesturePattern.FLIP_FACE_UP,
+                GesturePattern.TWIST,
             ),
             detectorPatterns,
         )
+    }
+
+    @Test
+    fun `live detectors span both the accelerometer and the gyroscope`() {
+        val sensors = TriggerLibrary.detectors().map { it.sensor }.toSet()
+        assertTrue(sensors.contains(SensorType.ACCELEROMETER))
+        assertTrue(sensors.contains(SensorType.GYROSCOPE))
     }
 
     @Test

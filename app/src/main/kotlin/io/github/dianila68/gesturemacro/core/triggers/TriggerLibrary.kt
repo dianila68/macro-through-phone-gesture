@@ -5,6 +5,7 @@ import io.github.dianila68.gesturemacro.core.sensors.FlipDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
 import io.github.dianila68.gesturemacro.core.sensors.ShakeDetector
+import io.github.dianila68.gesturemacro.core.sensors.TwistDetector
 import io.github.dianila68.gesturemacro.core.serialization.PatternKind
 import io.github.dianila68.gesturemacro.core.serialization.SensorKind
 
@@ -94,11 +95,11 @@ object TriggerLibrary {
             pattern = PatternKind.TWIST,
             sensor = SensorKind.GYROSCOPE,
             displayName = "Twist",
-            description = "Rotate the phone sharply around its long axis.",
-            available = false,
+            description = "Twist your wrist: rotate the phone one way then sharply back.",
+            available = true,
             defaultCooldownMs = 2_000,
-            sensitivityHint = "Planned — needs the gyroscope pipeline.",
-            detectorFactory = null,
+            sensitivityHint = "Higher = a gentler twist triggers it.",
+            detectorFactory = { s -> TwistDetector(s) },
         ),
         TriggerSpec(
             pattern = PatternKind.PROXIMITY_WAVE,

@@ -10,6 +10,7 @@ import kotlin.math.sqrt
  */
 class ShakeDetector(sensitivity: Float = 0.5f) : GestureDetector {
     override val pattern = GesturePattern.SHAKE
+    override val sensor = SensorType.ACCELEROMETER
 
     private val threshold = lerp(LOOSE_THRESHOLD, TIGHT_THRESHOLD, sensitivity)
     private val peaks = ArrayDeque<Long>()

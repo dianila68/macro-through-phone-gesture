@@ -7,6 +7,9 @@ package io.github.dianila68.gesturemacro.core.sensors
 interface GestureDetector {
     val pattern: GesturePattern
 
+    /** The sensor whose samples this detector consumes; lets the pipeline subscribe minimally. */
+    val sensor: SensorType
+
     /** Returns an event when this sample completes the pattern, null otherwise. */
     fun feed(sample: SensorSample): GestureEvent?
 

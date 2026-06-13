@@ -13,11 +13,11 @@ data class TraceSample(val t: Long, val x: Float, val y: Float, val z: Float)
 object TraceReplay {
     private val json = Json
 
-    fun load(resource: String): List<SensorSample> {
+    fun load(resource: String, sensor: SensorType = SensorType.ACCELEROMETER): List<SensorSample> {
         val stream = checkNotNull(javaClass.getResourceAsStream(resource)) { "Missing fixture $resource" }
         val text = stream.bufferedReader().use { it.readText() }
         return json.decodeFromString<List<TraceSample>>(text).map {
-            SensorSample(SensorType.ACCELEROMETER, it.t, floatArrayOf(it.x, it.y, it.z))
+            SensorSample(sensor, it.t, floatArrayOf(it.x, it.y, it.z))
         }
     }
 

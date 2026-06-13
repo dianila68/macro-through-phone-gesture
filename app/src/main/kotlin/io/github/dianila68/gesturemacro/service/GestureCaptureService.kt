@@ -22,7 +22,6 @@ import io.github.dianila68.gesturemacro.core.data.MacroStore
 import io.github.dianila68.gesturemacro.core.engine.MacroEngine
 import io.github.dianila68.gesturemacro.core.sensors.AndroidSensorStream
 import io.github.dianila68.gesturemacro.core.sensors.GestureEvent
-import io.github.dianila68.gesturemacro.core.sensors.SensorType
 import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -79,9 +79,15 @@ class GestureCaptureService : Service() {
         if (pipelineJob != null) return
         // One detector per available trigger — the catalog is the single source of truth.
         val detectors = TriggerLibrary.detectors()
+        // Subscribe to exactly the sensors the detectors consume (e.g. gyroscope only
+        // joins when a twist trigger is live). Every sample reaches every detector;
+        // detectors ignore samples from other sensors, so the cross-feed is free.
+        val stream = AndroidSensorStream(this@GestureCaptureService)
+        val streams = detectors.map { it.sensor }.distinct().map { sensorType ->
+            stream.samples(sensorType, samplingPeriodUs = SAMPLING_PERIOD_US)
+        }
         pipelineJob = scope.launch {
-            AndroidSensorStream(this@GestureCaptureService)
-                .samples(SensorType.ACCELEROMETER, samplingPeriodUs = SAMPLING_PERIOD_US)
+            merge(*streams.toTypedArray())
                 .catch { e -> Log.w(TAG, "Sensor stream ended: ${e.message}") }
                 .collect { sample ->
                     for (detector in detectors) {
