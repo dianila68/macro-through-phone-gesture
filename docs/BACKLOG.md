@@ -1,5 +1,7 @@
 # Backlog — dependency-ordered
 
+> **Milestone view:** [ARCHITECTURE.md § Milestone roadmap](ARCHITECTURE.md#milestone-roadmap) phases every open ticket into M1–M5. This file is the *dependency* view.
+
 > Generated 2026-06-13. Orders every **open** ticket by dependency, and groups the
 > independent tracks that can run in parallel. Source of truth for *what* each ticket is:
 > [`tickets/`](../tickets/). Architecture of the core/app split: [ADR-0003](adr/0003-core-app-separation.md).
@@ -42,7 +44,7 @@ These four tracks have **no dependencies on each other** except the two cross-li
    `030` (deep-research spike) → `031` (per-sensor utility functions) → `032` (single-sensor use cases) → `033` (composed multi-sensor conditions, sensitivity-weighted) → `034` (user-definable composed-macro editor — **future, plan-carefully stub, do not start**).
    *Cross-links:* `031`/`033` are pure-engine work that lands cleanest **after** the refactor track puts logic in `:engine`; `033` extends the macro format (bump governed by `022`/ADR-0002); `032` feeds the curated catalog (`016`). `030` is a `deep-research` deliverable, not code.
 6. **Third-party app-control track ([ADR-0004](adr/0004-third-party-app-control-strategy.md), research-backed):**
-   `035` (installed-app picker — package→name+icon, ←019/018) · `036` (targeted media control via Notification Listener, ←017) → `037` (per-app deep-link/SDK providers, e.g. Spotify exact playback, ←017/036) · `038` (accessibility UI-automation fallback — last resort, ←004/039) · `039` (compliance & distribution posture — gates 036/038, ←004) · `040` (Shizuku/root advanced privileged tier — opt-in, ←039/038).
+   `035` (installed-app picker — package→name+icon, ←019/018) · `036` (targeted media control via Notification Listener, ←017) → `037` (per-app deep-link/SDK providers, e.g. Spotify exact playback, ←017/036) · `038` (accessibility UI-automation fallback — last resort, ←004/039) · `039` (compliance & distribution posture — gates 036/038, ←004) · `040` (Shizuku/root advanced privileged tier — opt-in, ←039/038) · `041` (automate/minimise privileged-tier provisioning — refines 040, ←040).
    *Cross-links:* all hang off the action-catalog SPI (`016`/`017`); `035` shares ticket-019's `<queries>`; `039` is the policy gate for the accessibility (`038`), Notification-Listener (`036`), and Shizuku (`040`) features. Strategy is **capability-first** (Tiers 1–2); `038`/`040` are scoped fallbacks.
 
 ## Critical path & recommended order
