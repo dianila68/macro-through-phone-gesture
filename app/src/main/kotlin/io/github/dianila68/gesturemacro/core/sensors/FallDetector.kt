@@ -57,6 +57,13 @@ class FallDetector(sensitivity: Float = 0.5f) : GestureDetector {
                 if (mag < freefallMaxMag) return null
                 if (t - freefallStart >= MIN_FREEFALL_MS) {
                     state = State.IMPACT_WAIT
+                    // The first sample to exit free-fall may itself be the impact spike —
+                    // check it immediately rather than waiting for the next sample.
+                    if (mag >= impactMinMag) {
+                        state = State.STILLNESS_WATCH
+                        impactTime = t
+                        stillnessMags.clear()
+                    }
                 } else {
                     // Free-fall too brief — spurious noise; reset.
                     state = State.IDLE
