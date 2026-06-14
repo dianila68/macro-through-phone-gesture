@@ -12,6 +12,7 @@
 **Done:** 001, 003, 004, 006, 007, 008, 010, 011, 012, 013 (+ integration-testing emulator job).
 **Effectively done / minor remainder:** 002 (on-device pass = 009), 005 (codec+YAML shipped; schema sync pending).
 **Open — core (new thesis):** sensing 030–033 + **042** (fall); safe actions 016–018, **043**, **044**, 035, 019; bugs 019/020; quality 014/015; structural refactor 021–029.
+**New — gesture recording sub-editor:** **045**→**046**→**047**→**048**→**049**→**050**→**051**→**052**→**053**.
 **Parked → [`tickets/plausible-features/`](../tickets/plausible-features/):** 036–041 (third-party app control beyond safe launch).
 
 ## Tracks (re-oriented around ADR-0005)
@@ -24,16 +25,26 @@
 5. **Quality (independent infra):** `014` (detekt), `015` (continuous fuzzing).
 6. **Core/app refactor (structural, thesis-agnostic — ADR-0003):** `021`→`023`→`024`→`025`→`026`→`027`→`028`→`029`(gated); `022` feeds `024`; `027`←`016`.
 
+**Gesture recording sub-editor (new track — 045–053):**
+
+7. **Recording session & capture (pure-JVM foundation):**
+   `045` (session lifecycle) → `046` (sensor capture + SampleBuffer) → `047` (per-repetition quality scoring).
+8. **Envelope & live matching:**
+   `048` (envelope builder) → `049` (recorded gesture trigger / live detector).
+9. **UI, persistence, validation:**
+   `050` (recording sub-editor UI; depends 045+047) → `051` (Room persistence, DB v3; depends 048) → `052` (replay validation / "Test it"; depends 049+050+051) → `053` (gesture library management UI; depends 051+050).
+
 **Parked (revive via [ADR-0004](adr/0004-third-party-app-control-strategy.md); not now):**
-7. **Third-party app control:** `036`–`041` — targeted media, per-app SDK, accessibility injection, compliance, Shizuku/root. See [`tickets/plausible-features/README.md`](../tickets/plausible-features/README.md).
+10. **Third-party app control:** `036`–`041` — targeted media, per-app SDK, accessibility injection, compliance, Shizuku/root. See [`tickets/plausible-features/README.md`](../tickets/plausible-features/README.md).
 
 ## Recommended order
 
 1. **Quick wins now:** `044` (sound action — the fastest "wow", pairs with shake/flip/push) · `020` (proximity fix) · `019` (launch fix).
 2. **Build the flagship:** `042` (fall detector) → `043` (location alert). Highest value; treat the safety/honesty caveats seriously.
-3. **Deepen sensing:** `030` → `031` → `032` → `033`.
-4. **Round out actions:** `016` → `017` → `018` (+ `035`).
-5. **Structural refactor** (`021`→…→`028`) and **quality** (`014`,`015`) slot in anywhere — independent of the feature work.
+3. **Gesture recording:** `045` → `046` → `047` (parallel: `048`) → `049` → `050` → `051` → `052` → `053`. Can run in parallel with flagship after `044`.
+4. **Deepen sensing:** `030` → `031` → `032` → `033`.
+5. **Round out actions:** `016` → `017` → `018` (+ `035`).
+6. **Structural refactor** (`021`→…→`028`) and **quality** (`014`,`015`) slot in anywhere — independent of the feature work.
 
 ## Blocked / externally gated (not code work)
 
