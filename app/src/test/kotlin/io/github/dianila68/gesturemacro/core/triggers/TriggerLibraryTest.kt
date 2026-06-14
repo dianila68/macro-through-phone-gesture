@@ -44,6 +44,7 @@ class TriggerLibraryTest {
                 GesturePattern.FLIP_FACE_UP,
                 GesturePattern.TWIST,
                 GesturePattern.PROXIMITY_WAVE,
+                GesturePattern.FALL,
             ),
             detectorPatterns,
         )

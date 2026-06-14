@@ -20,6 +20,10 @@ interface SensorStream {
 class AndroidSensorStream(context: Context) : SensorStream {
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
+    /** Returns `Sensor.getMaximumRange()` for [type], or null if the sensor is absent. */
+    fun sensorMaxRange(type: SensorType): Float? =
+        sensorManager.getDefaultSensor(type.toAndroidType())?.maximumRange
+
     override fun samples(type: SensorType, samplingPeriodUs: Int, maxReportLatencyUs: Int): Flow<SensorSample> =
         callbackFlow {
             val sensor = sensorManager.getDefaultSensor(type.toAndroidType())

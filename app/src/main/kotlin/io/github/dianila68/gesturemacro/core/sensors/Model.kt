@@ -13,6 +13,7 @@ enum class GesturePattern {
     FLIP_FACE_UP,
     TWIST,
     PROXIMITY_WAVE,
+    FALL,
 }
 
 /** One sensor reading; [t] is milliseconds on a monotonic clock. */

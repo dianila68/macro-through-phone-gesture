@@ -30,6 +30,7 @@ import io.github.dianila68.gesturemacro.core.serialization.PatternKind
 import io.github.dianila68.gesturemacro.core.serialization.SensorKind
 import io.github.dianila68.gesturemacro.core.serialization.SystemToggleAction
 import io.github.dianila68.gesturemacro.core.serialization.Trigger
+import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import java.util.UUID
 
 private enum class QuickAction(val label: String) {
@@ -43,6 +44,7 @@ private val quickPatterns = listOf(
     PatternKind.SHAKE,
     PatternKind.FLIP_FACE_DOWN,
     PatternKind.FLIP_FACE_UP,
+    PatternKind.PROXIMITY_WAVE,
 )
 
 /**
@@ -133,12 +135,13 @@ private fun buildMacro(name: String, pattern: PatternKind, action: QuickAction, 
             IntentAction(target = packageName.trim(), command = "launch")
         }
     }
+    val sensorKind = TriggerLibrary.forPattern(pattern)?.sensor ?: SensorKind.ACCELEROMETER
     return GestureMacro(
         version = 1,
         id = UUID.randomUUID().toString(),
         name = name.trim(),
         enabled = true,
-        trigger = Trigger(sensor = SensorKind.ACCELEROMETER, pattern = pattern),
+        trigger = Trigger(sensor = sensorKind, pattern = pattern),
         actions = listOf(macroAction),
     )
 }

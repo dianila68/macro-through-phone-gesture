@@ -4,19 +4,28 @@ package io.github.dianila68.gesturemacro.core.sensors
  * Detects a hand wave just over the screen: a far → near → far transition where
  * the "near" phase is brief.
  *
- * Proximity sensors are coarse — most report a binary near/far distance (≈0 cm
- * vs the sensor's max range) in a single value. This detector reads [v]`[0]` and
- * treats anything under [nearThreshold] as covered. It fires only when the cover
- * lasts between [MIN_COVER_MS] and [MAX_COVER_MS]: shorter is sensor flicker,
- * longer is the phone in a pocket or face-down on a table, neither of which is a
- * deliberate wave.
+ * Proximity sensors are coarse — most report a binary near/far reading: 0 for
+ * near and `Sensor.getMaximumRange()` for far. Near/far is classified relative to
+ * [maximumRange] so the detector works on all real devices, including common binary
+ * sensors that report far as exactly their max range (often 5 cm). [maximumRange]
+ * is injected at construction from `Sensor.getMaximumRange()`; the detector itself
+ * has no Android dependency.
+ *
+ * It fires only when the cover lasts between [MIN_COVER_MS] and [MAX_COVER_MS]:
+ * shorter is sensor flicker, longer is the phone in a pocket — neither is a wave.
+ *
+ * Sensitivity scales the "near" fraction: higher sensitivity widens the near band
+ * so a less complete cover still counts.
  */
-class ProximityWaveDetector(sensitivity: Float = 0.5f) : GestureDetector {
+class ProximityWaveDetector(
+    sensitivity: Float = 0.5f,
+    /** Sensor.getMaximumRange() for the device's proximity sensor; defaulted for JVM tests. */
+    maximumRange: Float = DEFAULT_MAX_RANGE,
+) : GestureDetector {
     override val pattern = GesturePattern.PROXIMITY_WAVE
     override val sensor = SensorType.PROXIMITY
 
-    // Higher sensitivity widens the "near" zone, so a less complete cover still counts.
-    private val nearThreshold = lerp(NEAR_STRICT_CM, NEAR_LENIENT_CM, sensitivity)
+    private val nearThreshold = maximumRange * lerp(NEAR_STRICT_FRACTION, NEAR_LENIENT_FRACTION, sensitivity)
     private var coveredSince = Long.MIN_VALUE
 
     override fun feed(sample: SensorSample): GestureEvent? {
@@ -42,9 +51,14 @@ class ProximityWaveDetector(sensitivity: Float = 0.5f) : GestureDetector {
     }
 
     companion object {
-        /** Distance (cm) under which the sensor is "covered"; widened by sensitivity. */
-        const val NEAR_STRICT_CM = 3.0f
-        const val NEAR_LENIENT_CM = 8.0f
+        /** Fraction of maximumRange below which the sensor is "near" (strict sensitivity). */
+        const val NEAR_STRICT_FRACTION = 0.3f
+
+        /** Fraction of maximumRange below which the sensor is "near" (lenient sensitivity). */
+        const val NEAR_LENIENT_FRACTION = 0.7f
+
+        /** Fallback maximumRange used in JVM tests where no Android Sensor is available. */
+        const val DEFAULT_MAX_RANGE = 10f
 
         /** A deliberate wave covers the sensor briefly; outside this band it is not a wave. */
         const val MIN_COVER_MS = 60L

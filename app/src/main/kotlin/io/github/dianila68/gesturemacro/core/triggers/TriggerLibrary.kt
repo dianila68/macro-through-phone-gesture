@@ -1,6 +1,7 @@
 package io.github.dianila68.gesturemacro.core.triggers
 
 import io.github.dianila68.gesturemacro.core.sensors.DoubleShakeDetector
+import io.github.dianila68.gesturemacro.core.sensors.FallDetector
 import io.github.dianila68.gesturemacro.core.sensors.FlipDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
@@ -110,7 +111,21 @@ object TriggerLibrary {
             available = true,
             defaultCooldownMs = 2_000,
             sensitivityHint = "Higher = a less complete cover still counts as a wave.",
+            // maximumRange is injected by GestureCaptureService from Sensor.getMaximumRange();
+            // this factory uses the safe default (for any caller without Android context).
             detectorFactory = { s -> ProximityWaveDetector(s) },
+        ),
+        TriggerSpec(
+            pattern = PatternKind.FALL,
+            sensor = SensorKind.ACCELEROMETER,
+            displayName = "Fall detection",
+            description = "Detects a likely fall: free-fall then impact then stillness. " +
+                "Not medical-grade — pair with a confirm-countdown action. " +
+                "Phone must be on the body; accuracy improves with a wrist sensor.",
+            available = true,
+            defaultCooldownMs = 30_000,
+            sensitivityHint = "Higher = easier to trigger (fewer false negatives, more false positives).",
+            detectorFactory = { s -> FallDetector(s) },
         ),
     )
 

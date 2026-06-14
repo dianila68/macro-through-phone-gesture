@@ -88,6 +88,9 @@ enum class PatternKind {
     @SerialName("proximity_wave")
     PROXIMITY_WAVE,
 
+    @SerialName("fall")
+    FALL,
+
     @SerialName("custom")
     CUSTOM,
 }

@@ -23,7 +23,9 @@ import io.github.dianila68.gesturemacro.core.engine.MacroEngine
 import io.github.dianila68.gesturemacro.core.sensors.AndroidSensorStream
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureEvent
+import io.github.dianila68.gesturemacro.core.sensors.ProximityWaveDetector
 import io.github.dianila68.gesturemacro.core.sensors.SensorSample
+import io.github.dianila68.gesturemacro.core.sensors.SensorType
 import io.github.dianila68.gesturemacro.core.serialization.PatternKind
 import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import kotlinx.coroutines.CoroutineScope
@@ -119,7 +121,16 @@ class GestureCaptureService : Service() {
         stream: AndroidSensorStream,
         patterns: Set<PatternKind>,
     ): Flow<Pair<List<GestureDetector>, SensorSample>> {
-        val detectors = patterns.mapNotNull { TriggerLibrary.forPattern(it)?.buildDetector() }
+        // Proximity wave needs the sensor's maximumRange for relative near/far classification.
+        val proximityMaxRange = stream.sensorMaxRange(SensorType.PROXIMITY)
+        val detectors = patterns.mapNotNull { pattern ->
+            val spec = TriggerLibrary.forPattern(pattern) ?: return@mapNotNull null
+            if (pattern == PatternKind.PROXIMITY_WAVE && proximityMaxRange != null) {
+                ProximityWaveDetector(maximumRange = proximityMaxRange)
+            } else {
+                spec.buildDetector()
+            }
+        }
         if (detectors.isEmpty()) return emptyFlow()
         val streams = detectors.map { it.sensor }.distinct().map { sensorType ->
             stream.samples(sensorType, samplingPeriodUs = SAMPLING_PERIOD_US)

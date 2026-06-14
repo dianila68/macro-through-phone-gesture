@@ -25,8 +25,8 @@ class ProximityWaveDetectorTest {
 
     @Test
     fun `handles single-value proximity samples`() {
-        val detector = ProximityWaveDetector()
-        // Near then far, as a real one-element proximity reading would arrive.
+        // Near (0) then far (8), with maximumRange=10 so nearThreshold=5; 8 >= 5 → far.
+        val detector = ProximityWaveDetector(maximumRange = 10f)
         assertEquals(null, detector.feed(SensorSample(SensorType.PROXIMITY, 100L, floatArrayOf(0f))))
         val event = detector.feed(SensorSample(SensorType.PROXIMITY, 300L, floatArrayOf(8f)))
         assertEquals(GesturePattern.PROXIMITY_WAVE, event?.pattern)
@@ -36,5 +36,27 @@ class ProximityWaveDetectorTest {
     fun `accelerometer samples are ignored`() {
         val detector = ProximityWaveDetector()
         assertEquals(null, detector.feed(SensorSample(SensorType.ACCELEROMETER, 0L, floatArrayOf(0f, 9f, 0f))))
+    }
+
+    @Test
+    fun `binary sensor reporting far as maximumRange 5 does not latch near`() {
+        // Bug regression: with maximumRange=5 the far reading IS 5; nearThreshold = 5*0.5 = 2.5.
+        // A far sample of 5.0 must NOT be classified as near (5.0 >= 2.5 → far).
+        val detector = ProximityWaveDetector(maximumRange = 5f)
+        // Far → near → far should fire once.
+        assertEquals(null, detector.feed(SensorSample(SensorType.PROXIMITY, 0L, floatArrayOf(5f))))   // far
+        assertEquals(null, detector.feed(SensorSample(SensorType.PROXIMITY, 100L, floatArrayOf(0f)))) // near
+        val event = detector.feed(SensorSample(SensorType.PROXIMITY, 300L, floatArrayOf(5f)))          // far
+        assertEquals(GesturePattern.PROXIMITY_WAVE, event?.pattern)
+    }
+
+    @Test
+    fun `far-only trace with maximumRange 5 fires nothing`() {
+        // All samples report the sensor's max range (far); no wave should ever fire.
+        val detector = ProximityWaveDetector(maximumRange = 5f)
+        val events = (0..10).mapNotNull { i ->
+            detector.feed(SensorSample(SensorType.PROXIMITY, (i * 20).toLong(), floatArrayOf(5f)))
+        }
+        assertTrue(events.isEmpty())
     }
 }
