@@ -38,6 +38,9 @@ These four tracks have **no dependencies on each other** except the two cross-li
    `021` (SPI in place) → `023` (quarantine Android) → `024` (extract `:engine`) → `025` (CI guard) → `026` (extract `:engine-android`) → `027` (carve catalog) → `028` (tidy/verify) → `029` (open-source carve, gated).
    `022` (lock format spec) feeds `024`.
    *Cross-link:* `027` needs `016` from the feature track (the catalog package hosts the `ActionCatalog`).
+5. **Sensor-expansion track (M4, mostly independent — research-gated):**
+   `030` (deep-research spike) → `031` (per-sensor utility functions) → `032` (single-sensor use cases) → `033` (composed multi-sensor conditions, sensitivity-weighted) → `034` (user-definable composed-macro editor — **future, plan-carefully stub, do not start**).
+   *Cross-links:* `031`/`033` are pure-engine work that lands cleanest **after** the refactor track puts logic in `:engine`; `033` extends the macro format (bump governed by `022`/ADR-0002); `032` feeds the curated catalog (`016`). `030` is a `deep-research` deliverable, not code.
 
 ## Critical path & recommended order
 
@@ -53,3 +56,5 @@ Recommended execution:
 
 - **009** — on-device M1 verification (screen-off latency, 24 h soak, Doze, restart). Needs a physical Android device; closes M1 but blocks no code.
 - **029** — open-source carve. Deliberately gated on the monetization milestone (ADR-0003); do **not** start early.
+- **034** — user-definable composed-sensor macro editor. Future stub; do **not** start before `033` settles and ADR-0003 lands.
+- **030** — research spike; gates the rest of the sensor-expansion track.
