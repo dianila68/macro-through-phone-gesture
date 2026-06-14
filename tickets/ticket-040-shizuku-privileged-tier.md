@@ -39,3 +39,5 @@ in-process `startActivity`.
 - Dhizuku/Device-Owner is a heavier alternative that survives reboot but has very intrusive setup;
   note as a possible future, not v1.
 - Implement behind the `ActionExecutor`/catalog SPI (ADR-0003) so it's just another provider tier.
+- **On-demand invocation, persistent channel:** invoke the privilege *per action* (cheap — `su -c`/binder call is sub-second), but **keep the shell-UID channel/service running**; (re)starting it costs *seconds* (process spawn + binder handshake), so it must NOT be torn down and rebuilt per trigger — that would blow the gesture→action latency budget. An idle binder endpoint costs ≈ no battery.
+- **No per-action "root toggle":** rootedness (unlocked bootloader + su daemon) is a *persistent device state*, not a runtime-toggleable capability, so time-slicing privilege per trigger does **not** make root-detecting banking apps happy — they see the device as rooted regardless. Magisk DenyList/Zygisk hiding is the (imperfect, increasingly-defeated) tool for that, not our concern to implement.

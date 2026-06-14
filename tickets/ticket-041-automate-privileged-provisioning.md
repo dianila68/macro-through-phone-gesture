@@ -38,5 +38,8 @@ bypass this (it would be malware behaviour and an instant Play ban / security ho
 
 ## Technical notes
 
+- **Reboot re-arm cognitive cost (non-root):** a low-frequency but recurring ritual (unlock → re-enable Wireless debugging if off → open app → "Start"; ~3–6 taps, 15–40 s, more if re-pairing). The real cost is **silent failure** — macros stop until the user remembers. Reduce it: a **Quick Settings tile** / **persistent notification action** that launches the guided start (~1–2 taps), proactive "advanced mode is down — re-arm?" detection instead of silent failure, and on **Android 13+** lean on Shizuku's *trusted-network auto-start*. Acceptable for the power-user audience; a dealbreaker as a mainstream default.
+- **No "ephemeral root" shortcut:** rootedness is a persistent device state, so per-trigger start/stop neither helps banking detection nor fits the latency budget (service start = seconds). Keep the channel up, invoke on demand (see ticket-040).
+
 - Sideload/F-Droid-oriented (ties to ticket-039 distribution hedge); Play is hostile to this tier.
 - Strictly an enhancement of ticket-040; same `ActionExecutor`/catalog SPI seam (ADR-0003).
