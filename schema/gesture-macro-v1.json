@@ -14,7 +14,7 @@
       "required": ["sensor", "pattern"],
       "properties": {
         "sensor": { "enum": ["accelerometer", "gyroscope", "proximity", "external"] },
-        "pattern": { "enum": ["shake", "double_shake", "flip_face_down", "flip_face_up", "twist", "proximity_wave", "custom"] },
+        "pattern": { "enum": ["shake", "double_shake", "flip_face_down", "flip_face_up", "twist", "proximity_wave", "fall", "custom"] },
         "sensitivity": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.5 },
         "cooldown_ms": { "type": "integer", "minimum": 0, "default": 2000 },
         "custom_thresholds": {

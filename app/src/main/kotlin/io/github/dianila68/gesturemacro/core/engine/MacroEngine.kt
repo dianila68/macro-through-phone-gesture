@@ -73,6 +73,7 @@ class MacroEngine(
             PatternKind.FLIP_FACE_UP -> pattern == GesturePattern.FLIP_FACE_UP
             PatternKind.TWIST -> pattern == GesturePattern.TWIST
             PatternKind.PROXIMITY_WAVE -> pattern == GesturePattern.PROXIMITY_WAVE
+            PatternKind.FALL -> pattern == GesturePattern.FALL
             PatternKind.CUSTOM -> false
         }
     }
