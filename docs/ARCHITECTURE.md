@@ -87,20 +87,33 @@ Import is **strict**: documents failing schema validation are rejected with fiel
 
 ## Milestone roadmap
 
-### M1 — Core Background Engine & Sensor Data Parsing
-Gradle scaffolding, persistent Foreground Service, SensorManager pipeline, gesture pattern detectors (shake/flip first), engine skeleton (trigger → log). Exit criterion: a flip gesture detected with screen off is logged within 500 ms, surviving 24 h in background.
-*Tickets: 001, 002, 003.*
+> Re-oriented around the product thesis ([ADR-0005](adr/0005-product-direction.md)): *private
+> on-device sensing → safe local reactions, fall-alert flagship.* The **dependency order & parallel
+> tracks** live in [BACKLOG.md](BACKLOG.md). The **core/app modular refactor** (ADR-0003, tickets
+> 021–029) is a cross-cutting *structural* effort, not a feature milestone. The **third-party
+> app-control track** (036–041) is **parked** in [`tickets/plausible-features/`](../tickets/plausible-features/).
 
-### M2 — Action Execution (Flashlight, Media Control via Intents/Accessibility)
-Action executor framework, flashlight toggle, media control (MediaSession / key events), AccessibilityService setup and first accessibility-driven action, constraints evaluation. Exit criterion: "flip to pause Spotify" works end-to-end.
-*Tickets: 004 + executor tickets to be filed.*
+### M1 — Core Background Engine & Sensing — ✅ largely done (+ flagship detector)
+Foreground Service pipeline, SensorManager, the full gesture vocabulary (shake, double-shake, flip up/down, twist, proximity-wave), demand-driven sensor subscription, engine (trigger → constraints → dispatch). Exit: screen-off gesture logged within 500 ms, 24 h background.
+*Tickets: 001, 002, 003, 011, 012, 013 (done); **042** fall detector (flagship sensing); **020** proximity sensor-relative threshold; **009** on-device verification (needs a device).*
 
-### M3 — Macro UI & Import/Export System
-Compose macro editor (trigger picker, action list builder), Room-backed macro library, JSON/YAML import/export with schema validation and versioned migrations. Exit criterion: a macro created on one device runs unchanged after export → import on another.
-*Tickets: 005 + UI tickets to be filed.*
+### M2 — Safe Local Actions — in progress
+The thesis surface: gesture → safe, reversible, local reaction. Executors done (flashlight, media keys, intent). Add the everyday + flagship actions and the friendly picker backend. Exit: "push → play 'no'" works; fall → location alert works end-to-end with a confirm-countdown; users pick actions instead of typing.
+*Tickets: 004 (done); **044** sound/voice action; **043** location-alert action (flagship, pairs with 042); **016/017** action catalog (re-scoped to safe local actions); **035** app picker (safe launch); **019** app-launch `<queries>` fix.*
 
-### M4 — Cross-Boundary Device Integration
-BLE/LAN bridge exposing **sensors of secondary devices** (smartwatch, spare phone) as `external` triggers for macros on the host device: device pairing, authenticated transport, sensor event protocol, `source_device` trigger routing. Exit criterion: a gesture on a paired watch fires a macro on the phone over BLE with authenticated, replay-protected messages.
+### M3 — Macro UX, Persistence & Quality — mostly done
+Compose editor (done, 010), Room library + JSON/YAML import/export (done, 005/007/008), the action-picker UX, quality gates. Exit: a macro survives export→import across devices; users build macros by picking actions.
+*Tickets: 005/007/008/010 (done); **018** editor action picker; quality: **014** detekt, **015** fuzz harness, **022** format-spec lock.*
+
+### M4 — Deeper Sensing & Cross-Device
+- **Sensing depth:** **030** research → **031** per-sensor utilities → **032** single-sensor use cases → **033** composed multi-sensor conditions (sensitivity-weighted).
+- **Cross-device:** BLE/LAN bridge exposing **secondary-device sensors** (smartwatch, spare phone) as `external` triggers — pairing, authenticated/replay-protected transport, `source_device` routing. *Also the robustness path for fall detection and the home of "left-behind" detection (the watch notices separation).* Exit: a watch gesture fires a phone macro over an authenticated BLE link.
+
+### M5 / future-gated
+**034** user-definable composed-macro editor (after 033 settles); **029** open-source carve of `:engine` (gated on the monetization milestone, ADR-0003).
+
+### Parked — Third-party app control (plausible-features)
+**036–041** (targeted media, per-app SDK, accessibility injection, compliance, Shizuku/root). Researched ([ADR-0004](adr/0004-third-party-app-control-strategy.md)) and shelved — revivable, not the now.
 
 ## Cross-cutting concerns
 
