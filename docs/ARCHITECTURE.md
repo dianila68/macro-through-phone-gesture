@@ -87,30 +87,33 @@ Import is **strict**: documents failing schema validation are rejected with fiel
 
 ## Milestone roadmap
 
-> Milestone view of the work; the **dependency order & parallel tracks** live in
-> [BACKLOG.md](BACKLOG.md). The **core/app modular refactor** (ADR-0003, tickets 021–029) is a
-> cross-cutting *structural* effort that runs alongside M2–M3 and should land before the M4 advanced
-> work; it is not a feature milestone.
+> Re-oriented around the product thesis ([ADR-0005](adr/0005-product-direction.md)): *private
+> on-device sensing → safe local reactions, fall-alert flagship.* The **dependency order & parallel
+> tracks** live in [BACKLOG.md](BACKLOG.md). The **core/app modular refactor** (ADR-0003, tickets
+> 021–029) is a cross-cutting *structural* effort, not a feature milestone. The **third-party
+> app-control track** (036–041) is **parked** in [`tickets/plausible-features/`](../tickets/plausible-features/).
 
-### M1 — Core Background Engine & Sensor Data Parsing — ✅ largely done
-Foreground Service pipeline, SensorManager, the full gesture vocabulary (shake, double-shake, flip up/down, twist, proximity-wave) via the trigger library, demand-driven sensor subscription, engine (trigger → constraints → dispatch). Exit: screen-off gesture logged within 500 ms, 24 h background.
-*Tickets: 001, 002, 003, 011, 012, 013 (done); **009** on-device verification (needs a device), **020** proximity sensor-relative threshold (correctness).*
+### M1 — Core Background Engine & Sensing — ✅ largely done (+ flagship detector)
+Foreground Service pipeline, SensorManager, the full gesture vocabulary (shake, double-shake, flip up/down, twist, proximity-wave), demand-driven sensor subscription, engine (trigger → constraints → dispatch). Exit: screen-off gesture logged within 500 ms, 24 h background.
+*Tickets: 001, 002, 003, 011, 012, 013 (done); **042** fall detector (flagship sensing); **020** proximity sensor-relative threshold; **009** on-device verification (needs a device).*
 
-### M2 — Action Execution & Capability-First App Control — in progress
-Executor framework (done: flashlight, media keys, intent, accessibility); fix + harden the action surface and lay the capability-first app-control foundation (ADR-0004 Tiers 1–3). Exit: "flip to pause Spotify" + reliable app launch + pick apps by friendly name.
-*Tickets: 004 (done); **019** app-launch `<queries>` fix; **035** installed-app picker; **016/017** action-catalog backend + assembly; **036** targeted media control; **039** app-control compliance posture.*
+### M2 — Safe Local Actions — in progress
+The thesis surface: gesture → safe, reversible, local reaction. Executors done (flashlight, media keys, intent). Add the everyday + flagship actions and the friendly picker backend. Exit: "push → play 'no'" works; fall → location alert works end-to-end with a confirm-countdown; users pick actions instead of typing.
+*Tickets: 004 (done); **044** sound/voice action; **043** location-alert action (flagship, pairs with 042); **016/017** action catalog (re-scoped to safe local actions); **035** app picker (safe launch); **019** app-launch `<queries>` fix.*
 
-### M3 — Macro UX, Persistence & Per-App Providers — in progress
-Compose editor (done, 010), Room library + JSON/YAML import/export (done, 005/007/008), the action-picker UX, and per-app exact-action providers (Spotify deep-link/SDK). Plus quality gates. Exit: a macro survives export→import across devices; users build macros by picking actions, not typing.
-*Tickets: 005/007/008/010 (done); **018** editor action picker; **037** per-app deep-link/SDK providers; quality: **014** detekt, **015** fuzz harness, **022** format-spec lock.*
+### M3 — Macro UX, Persistence & Quality — mostly done
+Compose editor (done, 010), Room library + JSON/YAML import/export (done, 005/007/008), the action-picker UX, quality gates. Exit: a macro survives export→import across devices; users build macros by picking actions.
+*Tickets: 005/007/008/010 (done); **018** editor action picker; quality: **014** detekt, **015** fuzz harness, **022** format-spec lock.*
 
-### M4 — Advanced Sensing, Fallback Automation & Cross-Boundary
-- **Advanced sensing:** **030** research → **031** per-sensor utilities → **032** single-sensor use cases → **033** composed multi-sensor conditions (sensitivity-weighted).
-- **Fallback app control (ADR-0004 Tiers 4–5):** **038** accessibility UI-automation (last resort), **040** Shizuku/root privileged tier, **041** privileged-provisioning UX.
-- **Cross-device (original M4):** BLE/LAN bridge exposing **secondary-device sensors** (smartwatch, spare phone) as `external` triggers — pairing, authenticated/replay-protected transport, `source_device` routing. Exit: a watch gesture fires a phone macro over an authenticated BLE link.
+### M4 — Deeper Sensing & Cross-Device
+- **Sensing depth:** **030** research → **031** per-sensor utilities → **032** single-sensor use cases → **033** composed multi-sensor conditions (sensitivity-weighted).
+- **Cross-device:** BLE/LAN bridge exposing **secondary-device sensors** (smartwatch, spare phone) as `external` triggers — pairing, authenticated/replay-protected transport, `source_device` routing. *Also the robustness path for fall detection and the home of "left-behind" detection (the watch notices separation).* Exit: a watch gesture fires a phone macro over an authenticated BLE link.
 
 ### M5 / future-gated
 **034** user-definable composed-macro editor (after 033 settles); **029** open-source carve of `:engine` (gated on the monetization milestone, ADR-0003).
+
+### Parked — Third-party app control (plausible-features)
+**036–041** (targeted media, per-app SDK, accessibility injection, compliance, Shizuku/root). Researched ([ADR-0004](adr/0004-third-party-app-control-strategy.md)) and shelved — revivable, not the now.
 
 ## Cross-cutting concerns
 

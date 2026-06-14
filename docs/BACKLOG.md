@@ -2,65 +2,43 @@
 
 > **Milestone view:** [ARCHITECTURE.md § Milestone roadmap](ARCHITECTURE.md#milestone-roadmap) phases every open ticket into M1–M5. This file is the *dependency* view.
 
-> Generated 2026-06-13. Orders every **open** ticket by dependency, and groups the
-> independent tracks that can run in parallel. Source of truth for *what* each ticket is:
-> [`tickets/`](../tickets/). Architecture of the core/app split: [ADR-0003](adr/0003-core-app-separation.md).
+> Re-oriented 2026-06-14 around the product thesis ([ADR-0005](adr/0005-product-direction.md)):
+> *private on-device sensing → safe local reactions, fall-alert flagship.* The third-party
+> app-control track is **parked** in [`tickets/plausible-features/`](../tickets/plausible-features/).
+> Core/app split: [ADR-0003](adr/0003-core-app-separation.md). Source of *what*: [`tickets/`](../tickets/).
 
 ## Status snapshot
 
 **Done:** 001, 003, 004, 006, 007, 008, 010, 011, 012, 013 (+ integration-testing emulator job).
-**Effectively done / minor remainder:** 002 (code-complete; on-device pass = 009), 005 (codec+YAML shipped; schema-file sync pending).
-**Open:** 009, 014, 015, 016–020 (features/bugs), 021–029 (core/app refactor).
+**Effectively done / minor remainder:** 002 (on-device pass = 009), 005 (codec+YAML shipped; schema sync pending).
+**Open — core (new thesis):** sensing 030–033 + **042** (fall); safe actions 016–018, **043**, **044**, 035, 019; bugs 019/020; quality 014/015; structural refactor 021–029.
+**Parked → [`tickets/plausible-features/`](../tickets/plausible-features/):** 036–041 (third-party app control beyond safe launch).
 
-## Dependency tiers (topological — a tier depends only on earlier tiers)
+## Tracks (re-oriented around ADR-0005)
 
-| Tier | Tickets (ready when the tier opens) | Note |
-|---|---|---|
-| **0 — ready now** | **019**, **020**, **014**, **015**, **016**, **021**, **022** | No open dependencies. Mutually independent — any order / parallel. |
-| 1 | **017** (←016), **023** (←021) | |
-| 2 | **024** (←021,022,023), **018** (←016,017,019) | |
-| 3 | **025** (←024) | |
-| 4 | **026** (←024,025) | |
-| 5 | **027** (←024,026,**016**) | cross-track: needs the catalog backend |
-| 6 | **028** (←026,027) | |
-| 7 — gated | **029** (←028 + monetization milestone) | deferred deliberately |
+**Core:**
+1. **★ Flagship — Personal safety:** **042** (fall detector) → **043** (location-alert action). The headline feature; 043 pairs with a confirm-countdown.
+2. **Everyday safe actions:** **044** (sound/voice — the "push → 'no'" delight), `016`→`017`→`018` (action catalog + picker, **re-scoped to safe local actions**), `035` (app picker for safe launch), `019` (launch fix). *Cross-links: 043/044 build on the catalog (016); 018←019.*
+3. **Sensing (elevated to core):** `030` (research) → `031` (per-sensor utilities) → `032` (single-sensor use cases) → `033` (composed multi-sensor conditions); `042` lives here too; `034` future stub.
+4. **Bug-fix (do first — cheap):** `019` (app-launch `<queries>`), `020` (proximity sensor-relative threshold).
+5. **Quality (independent infra):** `014` (detekt), `015` (continuous fuzzing).
+6. **Core/app refactor (structural, thesis-agnostic — ADR-0003):** `021`→`023`→`024`→`025`→`026`→`027`→`028`→`029`(gated); `022` feeds `024`; `027`←`016`.
 
-## Independent parallel tracks
+**Parked (revive via [ADR-0004](adr/0004-third-party-app-control-strategy.md); not now):**
+7. **Third-party app control:** `036`–`041` — targeted media, per-app SDK, accessibility injection, compliance, Shizuku/root. See [`tickets/plausible-features/README.md`](../tickets/plausible-features/README.md).
 
-These four tracks have **no dependencies on each other** except the two cross-links noted, so they can be worked concurrently:
+## Recommended order
 
-1. **Bug-fix track (do first — cheap, fixes broken advertised features):**
-   `019` (app-launch package visibility) · `020` (proximity-wave sensor-relative threshold). Each standalone.
-2. **Quality track (independent infra):**
-   `014` (detekt → completes StaticAnalysis) · `015` (continuous fuzzing → completes FuzzTesting).
-3. **Action-catalog feature track:**
-   `016` (catalog backend) → `017` (assembly) → `018` (editor picker UI).
-   *Cross-link:* `018` also needs `019` (so app-launch actions are pickable).
-4. **Core/app refactor track (ADR-0003):**
-   `021` (SPI in place) → `023` (quarantine Android) → `024` (extract `:engine`) → `025` (CI guard) → `026` (extract `:engine-android`) → `027` (carve catalog) → `028` (tidy/verify) → `029` (open-source carve, gated).
-   `022` (lock format spec) feeds `024`.
-   *Cross-link:* `027` needs `016` from the feature track (the catalog package hosts the `ActionCatalog`).
-5. **Sensor-expansion track (M4, mostly independent — research-gated):**
-   `030` (deep-research spike) → `031` (per-sensor utility functions) → `032` (single-sensor use cases) → `033` (composed multi-sensor conditions, sensitivity-weighted) → `034` (user-definable composed-macro editor — **future, plan-carefully stub, do not start**).
-   *Cross-links:* `031`/`033` are pure-engine work that lands cleanest **after** the refactor track puts logic in `:engine`; `033` extends the macro format (bump governed by `022`/ADR-0002); `032` feeds the curated catalog (`016`). `030` is a `deep-research` deliverable, not code.
-6. **Third-party app-control track ([ADR-0004](adr/0004-third-party-app-control-strategy.md), research-backed):**
-   `035` (installed-app picker — package→name+icon, ←019/018) · `036` (targeted media control via Notification Listener, ←017) → `037` (per-app deep-link/SDK providers, e.g. Spotify exact playback, ←017/036) · `038` (accessibility UI-automation fallback — last resort, ←004/039) · `039` (compliance & distribution posture — gates 036/038, ←004) · `040` (Shizuku/root advanced privileged tier — opt-in, ←039/038) · `041` (automate/minimise privileged-tier provisioning — refines 040, ←040).
-   *Cross-links:* all hang off the action-catalog SPI (`016`/`017`); `035` shares ticket-019's `<queries>`; `039` is the policy gate for the accessibility (`038`), Notification-Listener (`036`), and Shizuku (`040`) features. Strategy is **capability-first** (Tiers 1–2); `038`/`040` are scoped fallbacks.
-
-## Critical path & recommended order
-
-The longest chain is the refactor track: **021 → 023 → 024 → 025 → 026 → 027 → 028 → 029** (8 deep), with `027` also waiting on `016`. That chain governs the timeline.
-
-Recommended execution:
-1. **Now, in parallel:** `019`, `020` (bug fixes) and `021` + `022` (kick off the refactor) and `016` (catalog backend — it's on the refactor's critical path via `027`).
-2. **Then:** `017`, `023`; then `024` (the pivotal extraction) + `018`.
-3. **Then the refactor tail:** `025 → 026 → 027 → 028`.
-4. **Quality track** (`014`, `015`) slots in anywhere — it's fully independent.
+1. **Quick wins now:** `044` (sound action — the fastest "wow", pairs with shake/flip/push) · `020` (proximity fix) · `019` (launch fix).
+2. **Build the flagship:** `042` (fall detector) → `043` (location alert). Highest value; treat the safety/honesty caveats seriously.
+3. **Deepen sensing:** `030` → `031` → `032` → `033`.
+4. **Round out actions:** `016` → `017` → `018` (+ `035`).
+5. **Structural refactor** (`021`→…→`028`) and **quality** (`014`,`015`) slot in anywhere — independent of the feature work.
 
 ## Blocked / externally gated (not code work)
 
-- **009** — on-device M1 verification (screen-off latency, 24 h soak, Doze, restart). Needs a physical Android device; closes M1 but blocks no code.
-- **029** — open-source carve. Deliberately gated on the monetization milestone (ADR-0003); do **not** start early.
-- **034** — user-definable composed-sensor macro editor. Future stub; do **not** start before `033` settles and ADR-0003 lands.
-- **030** — research spike; gates the rest of the sensor-expansion track.
-- **038** — accessibility UI-automation fallback; gated behind the compliance ticket **039** and deliberately scoped small (high policy/maintenance risk).
+- **009** — on-device M1 verification (latency, soak, Doze, restart). Needs a physical device.
+- **029** — open-source carve. Gated on the monetization milestone (ADR-0003).
+- **034** — user-definable composed-macro editor. Future stub; after `033` settles.
+- **030** — research spike; gates the rest of the sensing track.
+- **036–041** — parked (plausible-features); not blocked, deliberately deprioritised.

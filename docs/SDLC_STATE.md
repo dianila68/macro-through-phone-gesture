@@ -39,9 +39,12 @@ Monitoring → { Requirements, Architecture, Implementation }   (feedback loop)
 
 ## ▶ NEXT ACTIONS (in order)
 
-> **Full dependency-ordered backlog (all open tickets, parallel tracks, critical path):** [BACKLOG.md](BACKLOG.md).
-> **Core/app separation architecture:** [ADR-0003](adr/0003-core-app-separation.md) (tickets 021–029).
-> New since last session: action-catalog feature (016–018), field bugs (019 app-launch, 020 proximity), core/app refactor (021–029).
+> **Product thesis (read first):** [ADR-0005](adr/0005-product-direction.md) — private on-device
+> sensing → safe local reactions, fall-alert flagship. The third-party app-control track is **parked**
+> in [`tickets/plausible-features/`](../tickets/plausible-features/).
+> **Full dependency-ordered backlog (tracks, recommended order):** [BACKLOG.md](BACKLOG.md).
+> **Architecture:** [ADR-0003](adr/0003-core-app-separation.md) core/app split; [ADR-0004](adr/0004-third-party-app-control-strategy.md) app-control (parked).
+> New tickets: **042** fall detector, **043** location-alert action, **044** sound/voice action.
 
 
 1. **ticket-009** — manual on-device M1 verification pass (screen-off latency, 24 h soak, Doze, restart, shake→flashlight E2E). Closes ticket-002 and M1. **Requires a human with a device.**
