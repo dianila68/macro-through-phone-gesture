@@ -66,6 +66,15 @@ enum class SensorKind {
 
     @SerialName("external")
     EXTERNAL,
+
+    @SerialName("step_counter")
+    STEP_COUNTER,
+
+    @SerialName("light")
+    LIGHT,
+
+    @SerialName("pressure")
+    PRESSURE,
 }
 
 @Serializable
@@ -93,6 +102,28 @@ enum class PatternKind {
 
     @SerialName("custom")
     CUSTOM,
+
+    // M4 single-sensor use cases (ticket-032)
+    @SerialName("step_detected")
+    STEP_DETECTED,
+
+    @SerialName("is_stationary")
+    IS_STATIONARY,
+
+    @SerialName("picked_up")
+    PICKED_UP,
+
+    @SerialName("going_dark")
+    GOING_DARK,
+
+    @SerialName("going_bright")
+    GOING_BRIGHT,
+
+    @SerialName("altitude_rise")
+    ALTITUDE_RISE,
+
+    @SerialName("altitude_fall")
+    ALTITUDE_FALL,
 }
 
 @Serializable

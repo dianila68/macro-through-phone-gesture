@@ -13,8 +13,8 @@
       "type": "object",
       "required": ["sensor", "pattern"],
       "properties": {
-        "sensor": { "enum": ["accelerometer", "gyroscope", "proximity", "external"] },
-        "pattern": { "enum": ["shake", "double_shake", "flip_face_down", "flip_face_up", "twist", "proximity_wave", "fall", "custom"] },
+        "sensor": { "enum": ["accelerometer", "gyroscope", "proximity", "external", "step_counter", "light", "pressure"] },
+        "pattern": { "enum": ["shake", "double_shake", "flip_face_down", "flip_face_up", "twist", "proximity_wave", "fall", "custom", "step_detected", "is_stationary", "picked_up", "going_dark", "going_bright", "altitude_rise", "altitude_fall"] },
         "sensitivity": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.5 },
         "cooldown_ms": { "type": "integer", "minimum": 0, "default": 2000 },
         "custom_thresholds": {
