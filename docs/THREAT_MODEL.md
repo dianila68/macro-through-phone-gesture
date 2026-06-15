@@ -12,6 +12,7 @@
 | A3 — **GestureCaptureService + sensor stream** | Continuous motion data; availability target of OS/OEM killers |
 | A4 — **Macro store (Room DB)** | Tampering here = persistent arbitrary action execution |
 | A5 — **M4 BLE/LAN bridge** | Network-reachable trigger source; remote attack surface |
+| A6 — **Recorded gesture envelope store (Room DB v3)** | Tampered envelopes could make any motion (or no motion) trigger a macro |
 
 Trust boundaries: (B1) macro file → parser; (B2) app ↔ Accessibility framework; (B3) external device ↔ host over BLE/LAN; (B4) other apps ↔ our exported components.
 
@@ -30,6 +31,9 @@ Trust boundaries: (B1) macro file → parser; (B2) app ↔ Accessibility framewo
 | T9 | A5 | Spoofing | Unpaired device injects gesture events over BLE/LAN → remote macro execution | **High** (M4) | Mutual authentication at pairing (out-of-band code), per-session keys, replay protection (monotonic counter + MAC); unauthenticated frames dropped before parsing | M4 design doc (required before M4 code) |
 | T10 | A5 | DoS | Flooding the bridge port drains battery / wedges engine | Medium (M4) | Rate limiting, backpressure, bridge isolated in its own process | M4 |
 | T11 | A1 | Spoofing (social) | A "helpful macro pack" socially engineers users into enabling Accessibility for abuse | Medium | Onboarding states plainly what the service can do; import warns when a file requests accessibility capability; no silent capability escalation | ticket-004 onboarding copy |
+
+| T12 | A6 | Tampering | On rooted/backup-extracted device, `recorded_gesture` rows edited to broaden tolerance envelope → nearly any motion triggers the macro | Medium | Same HMAC-seal pattern as A4 (ticket-051): integrity check before `RecordedGestureDetector` is instantiated; fail-closed (gesture disabled, audit event) on broken seal | ticket-051 |
+| T13 | A6 | Info disclosure | Stored envelope reveals a characteristic motion pattern (e.g. a secret knock-code gesture used for something sensitive) | Low | Envelope stores magnitude statistics only, not raw frames (T7 unchanged); no network path; `allowBackup=false` already in manifest | ticket-051, T7 |
 
 ## Residual / accepted risks
 
