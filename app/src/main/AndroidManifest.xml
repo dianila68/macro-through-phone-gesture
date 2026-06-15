@@ -8,6 +8,20 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- ticket-019: scoped visibility for getLaunchIntentForPackage on API 30+.
+         QUERY_ALL_PACKAGES is not used (Play-policy-sensitive; MAIN/LAUNCHER is sufficient). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <!-- ticket-043: location + SMS for the fall-alert flagship action -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+
     <!-- Threat T5/NFR-4: macro store must not be extractable via adb backup -->
     <application
         android:name=".GestureMacroApp"

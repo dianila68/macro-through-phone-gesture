@@ -3,8 +3,10 @@ package io.github.dianila68.gesturemacro.core.actions
 import io.github.dianila68.gesturemacro.core.serialization.AccessibilityAction
 import io.github.dianila68.gesturemacro.core.serialization.GestureMacro
 import io.github.dianila68.gesturemacro.core.serialization.IntentAction
+import io.github.dianila68.gesturemacro.core.serialization.LocationAlertAction
 import io.github.dianila68.gesturemacro.core.serialization.MacroAction
 import io.github.dianila68.gesturemacro.core.serialization.MediaControlAction
+import io.github.dianila68.gesturemacro.core.serialization.PlaySoundAction
 import io.github.dianila68.gesturemacro.core.serialization.SystemToggleAction
 import kotlinx.coroutines.delay
 
@@ -28,6 +30,8 @@ class ActionDispatcher(
     private val mediaControl: ActionExecutor,
     private val intent: ActionExecutor,
     private val accessibility: ActionExecutor,
+    private val soundExecutor: ActionExecutor,
+    private val locationAlert: ActionExecutor,
 ) {
     suspend fun run(macro: GestureMacro): List<ExecResult> {
         val results = mutableListOf<ExecResult>()
@@ -37,6 +41,8 @@ class ActionDispatcher(
                 is MediaControlAction -> mediaControl
                 is IntentAction -> intent
                 is AccessibilityAction -> accessibility
+                is PlaySoundAction -> soundExecutor
+                is LocationAlertAction -> locationAlert
             }
             val result = try {
                 executor.execute(action)
