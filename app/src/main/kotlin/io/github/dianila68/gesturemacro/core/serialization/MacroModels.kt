@@ -66,6 +66,15 @@ enum class SensorKind {
 
     @SerialName("external")
     EXTERNAL,
+
+    @SerialName("step_counter")
+    STEP_COUNTER,
+
+    @SerialName("light")
+    LIGHT,
+
+    @SerialName("pressure")
+    PRESSURE,
 }
 
 @Serializable
@@ -93,6 +102,28 @@ enum class PatternKind {
 
     @SerialName("custom")
     CUSTOM,
+
+    // M4 single-sensor use cases (ticket-032)
+    @SerialName("step_detected")
+    STEP_DETECTED,
+
+    @SerialName("is_stationary")
+    IS_STATIONARY,
+
+    @SerialName("picked_up")
+    PICKED_UP,
+
+    @SerialName("going_dark")
+    GOING_DARK,
+
+    @SerialName("going_bright")
+    GOING_BRIGHT,
+
+    @SerialName("altitude_rise")
+    ALTITUDE_RISE,
+
+    @SerialName("altitude_fall")
+    ALTITUDE_FALL,
 }
 
 @Serializable
@@ -161,3 +192,61 @@ data class AccessibilityAction(
     val command: String,
     @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
 ) : MacroAction()
+
+/**
+ * ticket-044: plays a bundled sound, a user-chosen audio file (SAF URI), or a spoken phrase.
+ * Mode determines which of the three payload fields is active.
+ */
+@Serializable
+@SerialName("play_sound")
+data class PlaySoundAction(
+    val mode: SoundMode,
+    /** Identifier of a bundled sound asset (mode == BUNDLED). */
+    @SerialName("bundled_sound") val bundledSound: String? = null,
+    /** SAF content URI string for a user-chosen audio file (mode == FILE). */
+    @SerialName("file_uri") val fileUri: String? = null,
+    /** Phrase for text-to-speech playback (mode == TTS). */
+    @SerialName("tts_text") val ttsText: String? = null,
+    @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
+) : MacroAction() {
+    init {
+        when (mode) {
+            SoundMode.BUNDLED -> require(!bundledSound.isNullOrBlank()) { "play_sound: bundled_sound required when mode == bundled" }
+            SoundMode.FILE -> require(!fileUri.isNullOrBlank()) { "play_sound: file_uri required when mode == file" }
+            SoundMode.TTS -> require(!ttsText.isNullOrBlank()) { "play_sound: tts_text required when mode == tts" }
+        }
+    }
+}
+
+@Serializable
+enum class SoundMode {
+    @SerialName("bundled") BUNDLED,
+    @SerialName("file") FILE,
+    @SerialName("tts") TTS,
+}
+
+/**
+ * ticket-043: flagship fall-alert action — acquires location and sends it to a pre-chosen
+ * contact via SMS, after a confirm-countdown so false alarms can be cancelled.
+ *
+ * **Not a replacement for emergency services.** Privacy: all data stays on-device.
+ */
+@Serializable
+@SerialName("location_alert")
+data class LocationAlertAction(
+    /** Display name of the recipient (user-visible; stored for clarity). */
+    @SerialName("contact_name") val contactName: String,
+    /** Phone number that `SmsManager` dials; e.g. "+15555550100". */
+    @SerialName("contact_phone") val contactPhone: String,
+    /** Optional extra message appended to the coordinates text. */
+    val message: String = "",
+    /** Seconds of confirm-countdown before auto-sending. 0 = send immediately. */
+    @SerialName("countdown_sec") val countdownSec: Int = 15,
+    @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
+) : MacroAction() {
+    init {
+        require(contactName.isNotBlank()) { "location_alert: contact_name must not be blank" }
+        require(contactPhone.isNotBlank()) { "location_alert: contact_phone must not be blank" }
+        require(countdownSec >= 0) { "location_alert: countdown_sec must be >= 0" }
+    }
+}

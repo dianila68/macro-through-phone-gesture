@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <!--
+    Detekt baseline — absorbs findings present when detekt was introduced (ticket-014).
+    Remove entries here as issues are fixed; never add new ones (the baseline
+    is a ratchet, not a permanent exemption list).
+
+    To regenerate after a clean fix run:  ./gradlew detektBaseline
+    See CONTRIBUTING.md for the full workflow.
+  -->
+  <ManuallySuppressedIssues/>
+  <CurrentIssues/>
+</SmellBaseline>

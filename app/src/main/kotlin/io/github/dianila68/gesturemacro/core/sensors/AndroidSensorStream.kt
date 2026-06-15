@@ -46,6 +46,9 @@ class AndroidSensorStream(context: Context) : SensorStream {
         SensorType.ACCELEROMETER -> Sensor.TYPE_ACCELEROMETER
         SensorType.GYROSCOPE -> Sensor.TYPE_GYROSCOPE
         SensorType.PROXIMITY -> Sensor.TYPE_PROXIMITY
+        SensorType.STEP_COUNTER -> Sensor.TYPE_STEP_COUNTER
+        SensorType.LIGHT -> Sensor.TYPE_LIGHT
+        SensorType.PRESSURE -> Sensor.TYPE_PRESSURE
     }
 
     companion object {

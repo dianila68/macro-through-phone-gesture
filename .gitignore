@@ -64,3 +64,4 @@ Thumbs.db
 # Version control helpers
 *.orig
 *.rej
+.claude/

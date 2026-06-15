@@ -13,8 +13,8 @@
       "type": "object",
       "required": ["sensor", "pattern"],
       "properties": {
-        "sensor": { "enum": ["accelerometer", "gyroscope", "proximity", "external"] },
-        "pattern": { "enum": ["shake", "double_shake", "flip_face_down", "flip_face_up", "twist", "proximity_wave", "fall", "custom"] },
+        "sensor": { "enum": ["accelerometer", "gyroscope", "proximity", "external", "step_counter", "light", "pressure"] },
+        "pattern": { "enum": ["shake", "double_shake", "flip_face_down", "flip_face_up", "twist", "proximity_wave", "fall", "custom", "step_detected", "is_stationary", "picked_up", "going_dark", "going_bright", "altitude_rise", "altitude_fall"] },
         "sensitivity": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.5 },
         "cooldown_ms": { "type": "integer", "minimum": 0, "default": 2000 },
         "custom_thresholds": {
@@ -49,10 +49,18 @@
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "enum": ["system_toggle", "media_control", "intent", "accessibility"] },
+          "type": { "enum": ["system_toggle", "media_control", "intent", "accessibility", "play_sound", "location_alert"] },
           "target": { "type": "string", "description": "e.g. 'flashlight' for system_toggle; package name for intent/accessibility" },
           "command": { "type": "string", "description": "e.g. 'play_pause', 'next' for media_control; action verb for accessibility" },
           "extras": { "type": "object", "additionalProperties": { "type": "string" } },
+          "mode": { "enum": ["bundled", "file", "tts"], "description": "play_sound: which audio source to use" },
+          "bundled_sound": { "type": "string", "description": "play_sound: id of a bundled sound asset" },
+          "file_uri": { "type": "string", "description": "play_sound: SAF content URI for a user-chosen audio file" },
+          "tts_text": { "type": "string", "description": "play_sound: text to speak via TTS" },
+          "contact_name": { "type": "string", "description": "location_alert: display name of the recipient contact" },
+          "contact_phone": { "type": "string", "description": "location_alert: phone number to SMS" },
+          "message": { "type": "string", "description": "location_alert: optional extra message" },
+          "countdown_sec": { "type": "integer", "minimum": 0, "default": 15, "description": "location_alert: seconds before auto-sending" },
           "delay_after_ms": { "type": "integer", "minimum": 0, "default": 0 }
         }
       }

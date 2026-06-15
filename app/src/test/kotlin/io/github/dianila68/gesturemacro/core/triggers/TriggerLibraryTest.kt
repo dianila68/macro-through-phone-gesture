@@ -45,16 +45,27 @@ class TriggerLibraryTest {
                 GesturePattern.TWIST,
                 GesturePattern.PROXIMITY_WAVE,
                 GesturePattern.FALL,
+                // M4
+                GesturePattern.STEP_DETECTED,
+                GesturePattern.IS_STATIONARY,
+                GesturePattern.PICKED_UP,
+                GesturePattern.GOING_DARK,
+                GesturePattern.GOING_BRIGHT,
+                GesturePattern.ALTITUDE_RISE,
+                GesturePattern.ALTITUDE_FALL,
             ),
             detectorPatterns,
         )
     }
 
     @Test
-    fun `live detectors span both the accelerometer and the gyroscope`() {
+    fun `live detectors span accelerometer, gyroscope, proximity, step, light, pressure`() {
         val sensors = TriggerLibrary.detectors().map { it.sensor }.toSet()
         assertTrue(sensors.contains(SensorType.ACCELEROMETER))
         assertTrue(sensors.contains(SensorType.GYROSCOPE))
+        assertTrue(sensors.contains(SensorType.STEP_COUNTER))
+        assertTrue(sensors.contains(SensorType.LIGHT))
+        assertTrue(sensors.contains(SensorType.PRESSURE))
     }
 
     @Test

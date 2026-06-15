@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "Shake to toggle flashlight",
+  "enabled": true,
+  "trigger": {
+    "sensor": "accelerometer",
+    "pattern": "shake",
+    "sensitivity": 0.5,
+    "cooldown_ms": 2000,
+    "custom_thresholds": {},
+    "source_device": null
+  },
+  "constraints": {
+    "screen_state": "any",
+    "time_window": null
+  },
+  "actions": [
+    {
+      "type": "system_toggle",
+      "target": "flashlight",
+      "delay_after_ms": 0
+    }
+  ]
+}

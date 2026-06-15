@@ -1,12 +1,19 @@
 package io.github.dianila68.gesturemacro.core.triggers
 
+import io.github.dianila68.gesturemacro.core.sensors.AltitudeFallDetector
+import io.github.dianila68.gesturemacro.core.sensors.AltitudeRiseDetector
 import io.github.dianila68.gesturemacro.core.sensors.DoubleShakeDetector
 import io.github.dianila68.gesturemacro.core.sensors.FallDetector
 import io.github.dianila68.gesturemacro.core.sensors.FlipDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
+import io.github.dianila68.gesturemacro.core.sensors.GoingBrightDetector
+import io.github.dianila68.gesturemacro.core.sensors.GoingDarkDetector
+import io.github.dianila68.gesturemacro.core.sensors.PickedUpDetector
 import io.github.dianila68.gesturemacro.core.sensors.ProximityWaveDetector
 import io.github.dianila68.gesturemacro.core.sensors.ShakeDetector
+import io.github.dianila68.gesturemacro.core.sensors.StationaryDetector
+import io.github.dianila68.gesturemacro.core.sensors.StepDetector
 import io.github.dianila68.gesturemacro.core.sensors.TwistDetector
 import io.github.dianila68.gesturemacro.core.serialization.PatternKind
 import io.github.dianila68.gesturemacro.core.serialization.SensorKind
@@ -126,6 +133,78 @@ object TriggerLibrary {
             defaultCooldownMs = 30_000,
             sensitivityHint = "Higher = easier to trigger (fewer false negatives, more false positives).",
             detectorFactory = { s -> FallDetector(s) },
+        ),
+
+        // ── M4: Single-sensor use cases (ticket-032) ──────────────────────────
+        TriggerSpec(
+            pattern = PatternKind.STEP_DETECTED,
+            sensor = SensorKind.STEP_COUNTER,
+            displayName = "Step detected",
+            description = "Fires on each step registered by the hardware step counter.",
+            available = true,
+            defaultCooldownMs = 1_000,
+            sensitivityHint = "Sensitivity has no effect — step events come from hardware.",
+            detectorFactory = { s -> StepDetector(s) },
+        ),
+        TriggerSpec(
+            pattern = PatternKind.IS_STATIONARY,
+            sensor = SensorKind.STEP_COUNTER,
+            displayName = "Becomes stationary",
+            description = "Fires when the device has not moved (no steps) for a sustained period.",
+            available = true,
+            defaultCooldownMs = 60_000,
+            sensitivityHint = "Higher = fires after a shorter stillness period.",
+            detectorFactory = { s -> StationaryDetector(s) },
+        ),
+        TriggerSpec(
+            pattern = PatternKind.PICKED_UP,
+            sensor = SensorKind.ACCELEROMETER,
+            displayName = "Picked up",
+            description = "Fires when the device is lifted from a resting surface.",
+            available = true,
+            defaultCooldownMs = 5_000,
+            sensitivityHint = "Higher = a smaller motion counts as a pick-up.",
+            detectorFactory = { s -> PickedUpDetector(s) },
+        ),
+        TriggerSpec(
+            pattern = PatternKind.GOING_DARK,
+            sensor = SensorKind.LIGHT,
+            displayName = "Going dark",
+            description = "Fires when ambient light drops below a threshold (e.g. entering a pocket or dark room).",
+            available = true,
+            defaultCooldownMs = 5_000,
+            sensitivityHint = "Higher = a smaller drop in light triggers it.",
+            detectorFactory = { s -> GoingDarkDetector(s) },
+        ),
+        TriggerSpec(
+            pattern = PatternKind.GOING_BRIGHT,
+            sensor = SensorKind.LIGHT,
+            displayName = "Going bright",
+            description = "Fires when ambient light rises above a threshold (e.g. leaving a pocket).",
+            available = true,
+            defaultCooldownMs = 5_000,
+            sensitivityHint = "Higher = a smaller rise in light triggers it.",
+            detectorFactory = { s -> GoingBrightDetector(s) },
+        ),
+        TriggerSpec(
+            pattern = PatternKind.ALTITUDE_RISE,
+            sensor = SensorKind.PRESSURE,
+            displayName = "Going up (altitude rise)",
+            description = "Fires when barometric pressure drops, indicating the device is moving upward (stairs, elevator).",
+            available = true,
+            defaultCooldownMs = 10_000,
+            sensitivityHint = "Higher = a smaller altitude change triggers it.",
+            detectorFactory = { s -> AltitudeRiseDetector(s) },
+        ),
+        TriggerSpec(
+            pattern = PatternKind.ALTITUDE_FALL,
+            sensor = SensorKind.PRESSURE,
+            displayName = "Going down (altitude fall)",
+            description = "Fires when barometric pressure rises, indicating the device is moving downward.",
+            available = true,
+            defaultCooldownMs = 10_000,
+            sensitivityHint = "Higher = a smaller altitude change triggers it.",
+            detectorFactory = { s -> AltitudeFallDetector(s) },
         ),
     )
 

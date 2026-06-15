@@ -75,6 +75,13 @@ class MacroEngine(
             PatternKind.PROXIMITY_WAVE -> pattern == GesturePattern.PROXIMITY_WAVE
             PatternKind.FALL -> pattern == GesturePattern.FALL
             PatternKind.CUSTOM -> false
+            PatternKind.STEP_DETECTED -> pattern == GesturePattern.STEP_DETECTED
+            PatternKind.IS_STATIONARY -> pattern == GesturePattern.IS_STATIONARY
+            PatternKind.PICKED_UP -> pattern == GesturePattern.PICKED_UP
+            PatternKind.GOING_DARK -> pattern == GesturePattern.GOING_DARK
+            PatternKind.GOING_BRIGHT -> pattern == GesturePattern.GOING_BRIGHT
+            PatternKind.ALTITUDE_RISE -> pattern == GesturePattern.ALTITUDE_RISE
+            PatternKind.ALTITUDE_FALL -> pattern == GesturePattern.ALTITUDE_FALL
         }
     }
 }

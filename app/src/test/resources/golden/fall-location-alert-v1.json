@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "name": "Fall → location alert",
+  "enabled": true,
+  "trigger": {
+    "sensor": "accelerometer",
+    "pattern": "fall",
+    "sensitivity": 0.5,
+    "cooldown_ms": 30000,
+    "custom_thresholds": {},
+    "source_device": null
+  },
+  "constraints": {
+    "screen_state": "any",
+    "time_window": null
+  },
+  "actions": [
+    {
+      "type": "play_sound",
+      "mode": "bundled",
+      "bundled_sound": "alert",
+      "file_uri": null,
+      "tts_text": null,
+      "delay_after_ms": 0
+    },
+    {
+      "type": "location_alert",
+      "contact_name": "Alice",
+      "contact_phone": "+15555550100",
+      "message": "I may have fallen",
+      "countdown_sec": 15,
+      "delay_after_ms": 0
+    }
+  ]
+}

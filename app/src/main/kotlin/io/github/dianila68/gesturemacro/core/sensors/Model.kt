@@ -4,6 +4,12 @@ enum class SensorType {
     ACCELEROMETER,
     GYROSCOPE,
     PROXIMITY,
+    /** Hardware step counter (TYPE_STEP_COUNTER — cumulative total since last reboot). */
+    STEP_COUNTER,
+    /** Ambient light level in lux (TYPE_LIGHT). */
+    LIGHT,
+    /** Barometric pressure in hPa (TYPE_PRESSURE). */
+    PRESSURE,
 }
 
 enum class GesturePattern {
@@ -14,6 +20,14 @@ enum class GesturePattern {
     TWIST,
     PROXIMITY_WAVE,
     FALL,
+    // M4 single-sensor use cases (ticket-032)
+    STEP_DETECTED,
+    IS_STATIONARY,
+    PICKED_UP,
+    GOING_DARK,
+    GOING_BRIGHT,
+    ALTITUDE_RISE,
+    ALTITUDE_FALL,
 }
 
 /** One sensor reading; [t] is milliseconds on a monotonic clock. */

@@ -17,7 +17,9 @@ import io.github.dianila68.gesturemacro.core.actions.AccessibilityExecutor
 import io.github.dianila68.gesturemacro.core.actions.ActionDispatcher
 import io.github.dianila68.gesturemacro.core.actions.FlashlightExecutor
 import io.github.dianila68.gesturemacro.core.actions.IntentExecutor
+import io.github.dianila68.gesturemacro.core.actions.LocationAlertExecutor
 import io.github.dianila68.gesturemacro.core.actions.MediaControlExecutor
+import io.github.dianila68.gesturemacro.core.actions.SoundExecutor
 import io.github.dianila68.gesturemacro.core.data.MacroStore
 import io.github.dianila68.gesturemacro.core.engine.MacroEngine
 import io.github.dianila68.gesturemacro.core.sensors.AndroidSensorStream
@@ -67,6 +69,8 @@ class GestureCaptureService : Service() {
             mediaControl = MediaControlExecutor(this),
             intent = IntentExecutor(this),
             accessibility = AccessibilityExecutor(),
+            soundExecutor = SoundExecutor(this),
+            locationAlert = LocationAlertExecutor(this),
         )
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         engine = MacroEngine(screenOn = { powerManager.isInteractive })
