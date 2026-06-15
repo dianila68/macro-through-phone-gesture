@@ -10,6 +10,8 @@ enum class SensorType {
     LIGHT,
     /** Barometric pressure in hPa (TYPE_PRESSURE). */
     PRESSURE,
+    /** Magnetic field vector in µT (TYPE_MAGNETIC_FIELD); used for compass heading. */
+    MAGNETOMETER,
 }
 
 enum class GesturePattern {
@@ -28,6 +30,8 @@ enum class GesturePattern {
     GOING_BRIGHT,
     ALTITUDE_RISE,
     ALTITUDE_FALL,
+    /** Compass heading rotated by ≥ threshold degrees in the last window (ticket-031). */
+    HEADING_CHANGED,
 }
 
 /** One sensor reading; [t] is milliseconds on a monotonic clock. */

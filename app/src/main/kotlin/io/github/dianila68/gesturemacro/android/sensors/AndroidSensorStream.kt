@@ -48,6 +48,7 @@ class AndroidSensorStream(context: Context) : SensorStream {
         SensorType.STEP_COUNTER -> Sensor.TYPE_STEP_COUNTER
         SensorType.LIGHT -> Sensor.TYPE_LIGHT
         SensorType.PRESSURE -> Sensor.TYPE_PRESSURE
+        SensorType.MAGNETOMETER -> Sensor.TYPE_MAGNETIC_FIELD
     }
 
     companion object {

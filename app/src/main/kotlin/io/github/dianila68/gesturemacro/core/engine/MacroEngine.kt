@@ -8,16 +8,27 @@ import io.github.dianila68.gesturemacro.core.serialization.ScreenState
 
 /**
  * Pure decision core: gesture event in, list of macros to dispatch out
- * (trigger match → enabled → constraints → cooldown). Side effects live in the
+ * (trigger match → enabled → constraints → condition → cooldown). Side effects live in the
  * dispatcher, never here, so the whole policy is unit-testable (DESIGN.md).
+ *
+ * ticket-033: A shared [ConditionEvaluator] is maintained per engine instance. Every event
+ * is fed to it before trigger matching so state guards (IS_STATIONARY, GOING_DARK, etc.)
+ * reflect the latest sensor picture by the time conditions are checked.
  */
 class MacroEngine(
     private val clock: () -> Long = System::currentTimeMillis,
     private val screenOn: () -> Boolean? = { null },
+    conditionWindowMs: Long = ConditionEvaluator.DEFAULT_EVENT_WINDOW_MS,
 ) {
     private val lastFiredAt = mutableMapOf<String, Long>()
+    private val conditionEvaluator = ConditionEvaluator(conditionWindowMs)
 
+    /**
+     * Feeds the event to the condition evaluator (updates rolling state), then returns
+     * every macro whose trigger matches and whose condition, constraints, and cooldown pass.
+     */
     fun match(event: GestureEvent, macros: List<GestureMacro>): List<GestureMacro> {
+        conditionEvaluator.onEvent(event)
         val now = clock()
         val minuteOfDay = minuteOfDay(now)
         return macros.filter { macro ->
@@ -25,11 +36,20 @@ class MacroEngine(
                 macro.trigger.pattern.matches(event.pattern) &&
                 screenStateAllows(macro.constraints.screenState) &&
                 timeWindowAllows(macro, minuteOfDay) &&
+                conditionHolds(macro, now) &&
                 cooldownElapsed(macro, now)
         }.onEach { lastFiredAt[it.id] = now }
     }
 
-    fun reset() = lastFiredAt.clear()
+    fun reset() {
+        lastFiredAt.clear()
+        conditionEvaluator.reset()
+    }
+
+    private fun conditionHolds(macro: GestureMacro, nowMs: Long): Boolean {
+        val condition = macro.condition ?: return true
+        return conditionEvaluator.evaluate(condition, nowMs)
+    }
 
     private fun cooldownElapsed(macro: GestureMacro, now: Long): Boolean {
         val last = lastFiredAt[macro.id] ?: return true
@@ -82,6 +102,7 @@ class MacroEngine(
             PatternKind.GOING_BRIGHT -> pattern == GesturePattern.GOING_BRIGHT
             PatternKind.ALTITUDE_RISE -> pattern == GesturePattern.ALTITUDE_RISE
             PatternKind.ALTITUDE_FALL -> pattern == GesturePattern.ALTITUDE_FALL
+            PatternKind.HEADING_CHANGED -> pattern == GesturePattern.HEADING_CHANGED
         }
     }
 }
