@@ -1,6 +1,7 @@
 package io.github.dianila68.gesturemacro.core.triggers
 
 import io.github.dianila68.gesturemacro.core.sensors.AltitudeFallDetector
+import io.github.dianila68.gesturemacro.core.sensors.HeadingChangedDetector
 import io.github.dianila68.gesturemacro.core.sensors.AltitudeRiseDetector
 import io.github.dianila68.gesturemacro.core.sensors.DoubleShakeDetector
 import io.github.dianila68.gesturemacro.core.sensors.FallDetector
@@ -205,6 +206,16 @@ object TriggerLibrary {
             defaultCooldownMs = 10_000,
             sensitivityHint = "Higher = a smaller altitude change triggers it.",
             detectorFactory = { s -> AltitudeFallDetector(s) },
+        ),
+        TriggerSpec(
+            pattern = PatternKind.HEADING_CHANGED,
+            sensor = SensorKind.MAGNETOMETER,
+            displayName = "Heading changed (compass rotation)",
+            description = "Fires when the phone has rotated significantly from its last compass heading.",
+            available = true,
+            defaultCooldownMs = 3_000,
+            sensitivityHint = "Higher = a smaller rotation angle triggers it.",
+            detectorFactory = { s -> HeadingChangedDetector(s) },
         ),
     )
 

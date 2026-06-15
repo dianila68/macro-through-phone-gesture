@@ -16,6 +16,14 @@ data class GestureMacro(
     val trigger: Trigger,
     val constraints: Constraints = Constraints(),
     val actions: List<MacroAction>,
+    /**
+     * ticket-033: Optional composed multi-sensor condition that must hold when the trigger
+     * fires. null means "no extra condition" — fire on trigger alone (v1 behaviour).
+     * Not yet serialized to JSON (format v2 bump tracked in ticket-046); stored in memory
+     * only until the schema migration lands.
+     */
+    @kotlinx.serialization.Transient
+    val condition: io.github.dianila68.gesturemacro.core.engine.Condition? = null,
 ) {
     init {
         require(name.isNotBlank() && name.length <= MAX_NAME_LENGTH) {
@@ -75,6 +83,9 @@ enum class SensorKind {
 
     @SerialName("pressure")
     PRESSURE,
+
+    @SerialName("magnetometer")
+    MAGNETOMETER,
 }
 
 @Serializable
@@ -124,6 +135,9 @@ enum class PatternKind {
 
     @SerialName("altitude_fall")
     ALTITUDE_FALL,
+
+    @SerialName("heading_changed")
+    HEADING_CHANGED,
 }
 
 @Serializable
