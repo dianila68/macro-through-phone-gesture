@@ -1,5 +1,6 @@
 package io.github.dianila68.gesturemacro.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,20 +26,25 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import io.github.dianila68.gesturemacro.core.actions.ActionAssembly
 import io.github.dianila68.gesturemacro.core.actions.ActionCatalog
 import io.github.dianila68.gesturemacro.core.actions.ActionCategory
 import io.github.dianila68.gesturemacro.core.actions.ActionSpec
+import io.github.dianila68.gesturemacro.core.data.InstalledAppRepository
 import io.github.dianila68.gesturemacro.core.serialization.AccessibilityAction
 import io.github.dianila68.gesturemacro.core.serialization.Constraints
 import io.github.dianila68.gesturemacro.core.serialization.GestureMacro
@@ -54,6 +61,7 @@ import io.github.dianila68.gesturemacro.core.serialization.Trigger
 import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import io.github.dianila68.gesturemacro.core.triggers.TriggerSpec
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 private enum class ActionType(val label: String) {
     SYSTEM_TOGGLE("System toggle"),
@@ -323,25 +331,70 @@ private fun ActionPickerDialog(
     onPick: (DraftAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var searchQuery by remember { mutableStateOf("") }
     var pendingSpec by remember { mutableStateOf<ActionSpec?>(null) }
     var packageInput by remember { mutableStateOf("") }
     var showAdvanced by remember { mutableStateOf(false) }
     var advancedType by remember { mutableStateOf(ActionType.MEDIA_CONTROL) }
+    val appRepo = remember { InstalledAppRepository(context) }
+    var apps by remember { mutableStateOf(appRepo.apps()) }
+    var showAppPicker by remember { mutableStateOf(false) }
 
-    if (pendingSpec != null) {
-        // Package-name slot for APP_LAUNCH template
+    // Load installed apps the first time the picker opens
+    LaunchedEffect(Unit) {
+        appRepo.refresh()
+        apps = appRepo.apps()
+    }
+
+    if (showAppPicker && pendingSpec != null) {
+        AppPickerDialog(
+            apps = apps,
+            onPick = { app ->
+                val draft = DraftAction(
+                    type = ActionType.INTENT,
+                    target = app.packageName,
+                    command = "launch",
+                    catalogId = pendingSpec!!.id,
+                )
+                onPick(draft)
+                showAppPicker = false
+                pendingSpec = null
+            },
+            onManual = {
+                // Fall back to manual package entry
+                showAppPicker = false
+            },
+            onDismiss = {
+                showAppPicker = false
+                pendingSpec = null
+            },
+        )
+    }
+
+    if (!showAppPicker && pendingSpec != null) {
+        // Fallback: manual package-name entry (when app list is empty or user chose manual)
         AlertDialog(
             onDismissRequest = { pendingSpec = null },
             title = { Text(text = "App package name") },
             text = {
-                OutlinedTextField(
-                    value = packageInput,
-                    onValueChange = { packageInput = it },
-                    label = { Text(text = "e.g. com.spotify.music") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (apps.isNotEmpty()) {
+                        Button(
+                            onClick = { showAppPicker = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(text = "Choose from installed apps") }
+                        Text(text = "— or type a package name —", style = MaterialTheme.typography.labelSmall)
+                    }
+                    OutlinedTextField(
+                        value = packageInput,
+                        onValueChange = { packageInput = it },
+                        label = { Text(text = "e.g. com.spotify.music") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             },
             confirmButton = {
                 Button(
@@ -365,6 +418,8 @@ private fun ActionPickerDialog(
         )
         return
     }
+
+    if (showAppPicker) return // AppPickerDialog is showing; don't render the main dialog
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -418,6 +473,8 @@ private fun ActionPickerDialog(
                                 onClick = {
                                     if (spec.requiresPackage) {
                                         pendingSpec = spec
+                                        // Show the installed-app list if available, else manual entry
+                                        showAppPicker = apps.isNotEmpty()
                                     } else {
                                         onPick(specToDraft(spec))
                                     }
@@ -739,5 +796,74 @@ private fun buildMacro(
         ),
         constraints = Constraints(screenState = screenState, timeWindow = timeWindow),
         actions = drafts.map { it.toAction() },
+    )
+}
+
+/**
+ * ticket-035: Searchable picker listing installed launchable apps by label + icon.
+ * [onManual] is called if the user wants to type a package name manually instead.
+ */
+@Composable
+private fun AppPickerDialog(
+    apps: List<InstalledAppRepository.AppInfo>,
+    onPick: (InstalledAppRepository.AppInfo) -> Unit,
+    onManual: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var search by remember { mutableStateOf("") }
+    val filtered = remember(search, apps) {
+        if (search.isBlank()) apps
+        else apps.filter { it.label.contains(search, ignoreCase = true) || it.packageName.contains(search, ignoreCase = true) }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Choose app") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = { search = it },
+                    label = { Text(text = "Search apps") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (filtered.isEmpty()) {
+                    Text(text = "No apps match.", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                        items(filtered) { app ->
+                            TextButton(
+                                onClick = { onPick(app) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Image(
+                                        painter = rememberDrawablePainter(app.icon),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(32.dp),
+                                    )
+                                    Column {
+                                        Text(text = app.label, style = MaterialTheme.typography.bodyMedium)
+                                        Text(text = app.packageName, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = onManual) { Text(text = "Type package") }
+                TextButton(onClick = onDismiss) { Text(text = "Cancel") }
+            }
+        },
     )
 }
