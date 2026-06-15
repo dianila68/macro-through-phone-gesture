@@ -159,6 +159,13 @@ data class TimeWindow(val start: String, val end: String) {
 @Serializable
 sealed class MacroAction {
     abstract val delayAfterMs: Long
+
+    /**
+     * Stable type key matching the @SerialName of each subclass.
+     * Used by [ActionDispatcher] to look up executors from [ExecutorRegistrySpi] without a
+     * when-expression — adding a new action type requires no changes to the dispatcher.
+     */
+    abstract val actionType: String
 }
 
 @Serializable
@@ -166,7 +173,9 @@ sealed class MacroAction {
 data class SystemToggleAction(
     val target: String,
     @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
-) : MacroAction()
+) : MacroAction() {
+    override val actionType: String get() = "system_toggle"
+}
 
 @Serializable
 @SerialName("media_control")
@@ -174,7 +183,9 @@ data class MediaControlAction(
     val command: String,
     val target: String? = null,
     @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
-) : MacroAction()
+) : MacroAction() {
+    override val actionType: String get() = "media_control"
+}
 
 @Serializable
 @SerialName("intent")
@@ -183,7 +194,9 @@ data class IntentAction(
     val command: String,
     val extras: Map<String, String> = emptyMap(),
     @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
-) : MacroAction()
+) : MacroAction() {
+    override val actionType: String get() = "intent"
+}
 
 @Serializable
 @SerialName("accessibility")
@@ -191,7 +204,9 @@ data class AccessibilityAction(
     val target: String,
     val command: String,
     @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
-) : MacroAction()
+) : MacroAction() {
+    override val actionType: String get() = "accessibility"
+}
 
 /**
  * ticket-044: plays a bundled sound, a user-chosen audio file (SAF URI), or a spoken phrase.
@@ -209,6 +224,7 @@ data class PlaySoundAction(
     @SerialName("tts_text") val ttsText: String? = null,
     @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
 ) : MacroAction() {
+    override val actionType: String get() = "play_sound"
     init {
         when (mode) {
             SoundMode.BUNDLED -> require(!bundledSound.isNullOrBlank()) { "play_sound: bundled_sound required when mode == bundled" }
@@ -244,6 +260,7 @@ data class LocationAlertAction(
     @SerialName("countdown_sec") val countdownSec: Int = 15,
     @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
 ) : MacroAction() {
+    override val actionType: String get() = "location_alert"
     init {
         require(contactName.isNotBlank()) { "location_alert: contact_name must not be blank" }
         require(contactPhone.isNotBlank()) { "location_alert: contact_phone must not be blank" }
