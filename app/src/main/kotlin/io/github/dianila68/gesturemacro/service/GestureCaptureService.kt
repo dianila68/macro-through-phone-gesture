@@ -13,14 +13,16 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import io.github.dianila68.gesturemacro.core.actions.AccessibilityExecutor
+import io.github.dianila68.gesturemacro.android.actions.AccessibilityExecutor
+import io.github.dianila68.gesturemacro.android.actions.AccessibilityServiceGate
+import io.github.dianila68.gesturemacro.android.actions.FlashlightExecutor
+import io.github.dianila68.gesturemacro.android.actions.IntentExecutor
+import io.github.dianila68.gesturemacro.android.actions.LocationAlertExecutor
+import io.github.dianila68.gesturemacro.android.actions.MediaControlExecutor
+import io.github.dianila68.gesturemacro.android.actions.SoundExecutor
 import io.github.dianila68.gesturemacro.core.actions.ActionDispatcher
-import io.github.dianila68.gesturemacro.core.actions.FlashlightExecutor
-import io.github.dianila68.gesturemacro.core.actions.IntentExecutor
-import io.github.dianila68.gesturemacro.core.actions.LocationAlertExecutor
-import io.github.dianila68.gesturemacro.core.actions.MediaControlExecutor
-import io.github.dianila68.gesturemacro.core.actions.SoundExecutor
-import io.github.dianila68.gesturemacro.core.data.MacroStore
+import io.github.dianila68.gesturemacro.core.engine.BuiltinExecutorRegistry
+import io.github.dianila68.gesturemacro.android.data.MacroStore
 import io.github.dianila68.gesturemacro.core.engine.MacroEngine
 import io.github.dianila68.gesturemacro.core.sensors.AndroidSensorStream
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
@@ -57,6 +59,7 @@ import kotlinx.coroutines.launch
 class GestureCaptureService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var heartbeat: Heartbeat
+    private lateinit var wakeLock: WakeLockGuard
     private lateinit var dispatcher: ActionDispatcher
     private lateinit var engine: MacroEngine
     private var pipelineJob: Job? = null
@@ -64,14 +67,16 @@ class GestureCaptureService : Service() {
     override fun onCreate() {
         super.onCreate()
         heartbeat = Heartbeat(this)
-        dispatcher = ActionDispatcher(
-            systemToggle = FlashlightExecutor(this),
+        wakeLock = WakeLockGuard(this, WAKELOCK_TAG)
+        val registry = BuiltinExecutorRegistry(
+            flashlight = FlashlightExecutor(this),
             mediaControl = MediaControlExecutor(this),
             intent = IntentExecutor(this),
-            accessibility = AccessibilityExecutor(),
-            soundExecutor = SoundExecutor(this),
+            accessibility = AccessibilityExecutor(AccessibilityServiceGate { MacroAccessibilityService.instance.value }),
+            sound = SoundExecutor(this),
             locationAlert = LocationAlertExecutor(this),
         )
+        dispatcher = ActionDispatcher(registry)
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         engine = MacroEngine(screenOn = { powerManager.isInteractive })
         createChannel()
@@ -146,6 +151,8 @@ class GestureCaptureService : Service() {
         Log.i(TAG, "Gesture detected: ${event.pattern} (confidence ${event.confidence})")
         lastGestureState.value = event
         val fired = engine.match(event, MacroStore.macros.value)
+        if (fired.isEmpty()) return
+        wakeLock.openWindow(GESTURE_WINDOW_TIMEOUT_MS)
         for (macro in fired) {
             scope.launch {
                 val results = dispatcher.run(macro)
@@ -153,10 +160,15 @@ class GestureCaptureService : Service() {
                 Log.i(TAG, "Macro '${macro.name}' executed: $results")
             }
         }
+        scope.launch {
+            delay(GESTURE_WINDOW_TIMEOUT_MS)
+            wakeLock.closeWindow()
+        }
     }
 
     override fun onDestroy() {
         runningState.value = false
+        wakeLock.closeWindow()
         scope.cancel()
         super.onDestroy()
     }
@@ -212,6 +224,8 @@ class GestureCaptureService : Service() {
 
     companion object {
         private const val TAG = "GestureCapture"
+        private const val WAKELOCK_TAG = "$TAG:gestureWindow"
+        private const val GESTURE_WINDOW_TIMEOUT_MS = 5_000L
         const val ACTION_STOP = "io.github.dianila68.gesturemacro.action.STOP"
         const val CHANNEL_ID = "gesture_engine"
         const val NOTIFICATION_ID = 1001

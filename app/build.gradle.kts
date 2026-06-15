@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.accompanist.drawablepainter)
     implementation(libs.kaml)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
