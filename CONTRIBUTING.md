@@ -58,6 +58,24 @@ Keep subjects imperative and under ~72 characters; use the body for the "why".
 - ktlint will be wired into CI with the Gradle scaffolding (ticket-001); until then, format with Android Studio defaults.
 - Compose: stateless composables by default, state hoisted to ViewModels.
 
+## Static analysis
+
+Two tools run in CI and must pass before a PR can merge:
+
+- **ktlint** (style): `./gradlew ktlintCheck`
+- **detekt** (code smells / complexity): `./gradlew detekt`
+
+Configuration lives in `config/detekt/detekt.yml`. The baseline (`config/detekt/detekt-baseline.xml`) absorbs pre-existing findings; **never add new entries** — the baseline is a ratchet, not a permanent exemption list.
+
+If your change introduces a finding that you believe is a false positive, suppress it inline with `@Suppress("DetektRuleName")` and add a comment explaining why. If it affects many existing call sites, update `detekt.yml` instead and get it reviewed.
+
+**Regenerating the baseline** (only after fixing a batch of existing findings):
+
+```bash
+./gradlew detektBaseline
+git add config/detekt/detekt-baseline.xml
+```
+
 ## Security-sensitive areas
 
 Changes touching the **AccessibilityService**, **Foreground Service**, or **macro import parsing** require extra scrutiny in review (they are the app's privilege and attack surface). Call this out explicitly in the PR description.
