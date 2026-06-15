@@ -21,10 +21,13 @@ Native Android app that captures hardware gestures in the background and execute
 app/                  Compose UI, navigation, DI entry points
 core/engine/          Macro engine: trigger evaluation → constraints → action dispatch
 core/sensors/         SensorManager abstraction, sampling, gesture pattern detection
+core/triggers/        TriggerLibrary: built-in detectors + RecordedGestureDetector
+core/recording/       Gesture recording session, SampleBuffer, envelope builder, validation
 core/actions/         Action executors (intent, system_toggle, media_control, accessibility)
-core/data/            Room entities/DAOs, macro repository
+core/data/            Room entities/DAOs, macro repository, recorded gesture store
 core/serialization/   JSON/YAML schema models, import/export, validation, migrations
 service/              Foreground Service + AccessibilityService implementations
+ui/recording/         Gesture recording sub-editor Compose screens (6 steps)
 ```
 
 A single `app` module is acceptable until M2; the package structure above must be respected from day one so the later module split is mechanical.
@@ -85,6 +88,16 @@ The normative schema lives at [`schema/gesture-macro-v1.json`](../schema/gesture
 
 Import is **strict**: documents failing schema validation are rejected with field-level errors, never partially applied. Imported macros containing `accessibility` actions are imported **disabled** and require explicit user re-enable (defense against malicious shared macro files).
 
+### Recorded gesture envelope (v1)
+
+Custom recorded gestures are stored separately from the macro schema (Room table `recorded_gesture`, DB v3) and referenced in the macro's `trigger` field as `pattern: "recorded:<uuid>"`. The envelope captures the statistical shape of the gesture across N repetitions:
+
+- **30 time-normalised slices** of accelerometer (and optionally gyroscope) magnitude — per-slice mean and standard deviation.
+- **Duration band:** mean ± std of repetition durations (ms).
+- **Confidence score** derived from inter-sample coverage.
+
+At runtime the `RecordedGestureDetector` maintains a sliding buffer, time-normalises the most recent window, and checks per-slice `|sample − mean| ≤ k·std` where `k` maps to the macro's sensitivity setting (low = 1.5 × std, high = 3.0 × std).
+
 ## Milestone roadmap
 
 > Re-oriented around the product thesis ([ADR-0005](adr/0005-product-direction.md)): *private
@@ -101,9 +114,9 @@ Foreground Service pipeline, SensorManager, the full gesture vocabulary (shake, 
 The thesis surface: gesture → safe, reversible, local reaction. Executors done (flashlight, media keys, intent). Add the everyday + flagship actions and the friendly picker backend. Exit: "push → play 'no'" works; fall → location alert works end-to-end with a confirm-countdown; users pick actions instead of typing.
 *Tickets: 004 (done); **044** sound/voice action; **043** location-alert action (flagship, pairs with 042); **016/017** action catalog (re-scoped to safe local actions); **035** app picker (safe launch); **019** app-launch `<queries>` fix.*
 
-### M3 — Macro UX, Persistence & Quality — mostly done
-Compose editor (done, 010), Room library + JSON/YAML import/export (done, 005/007/008), the action-picker UX, quality gates. Exit: a macro survives export→import across devices; users build macros by picking actions.
-*Tickets: 005/007/008/010 (done); **018** editor action picker; quality: **014** detekt, **015** fuzz harness, **022** format-spec lock.*
+### M3 — Macro UX, Persistence, Quality & Gesture Recording — mostly done (recording new)
+Compose editor (done, 010), Room library + JSON/YAML import/export (done, 005/007/008), the action-picker UX, quality gates. **New:** gesture recording sub-editor (045–053) — user records a custom gesture by performing it multiple times; the engine derives a tolerance envelope and exposes it as a first-class trigger. Exit: a macro survives export→import across devices; users build macros by picking actions *or* recording a gesture; a recorded gesture matches at ≥ 75 % confidence within 10 s of the user performing it.
+*Tickets: 005/007/008/010 (done); **018** editor action picker; quality: **014** detekt, **015** fuzz harness, **022** format-spec lock; recording: **045**→**046**→**047**→**048**→**049**→**050**→**051**→**052**→**053**.*
 
 ### M4 — Deeper Sensing & Cross-Device
 - **Sensing depth:** **030** research → **031** per-sensor utilities → **032** single-sensor use cases → **033** composed multi-sensor conditions (sensitivity-weighted).
