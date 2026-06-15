@@ -28,6 +28,9 @@ Users want hands-free, screen-free control of their phone: trigger system action
 | FR-8 | User can pause/resume the whole engine from the FGS notification | M1 |
 | FR-9 | Engine surfaces diagnostics: last heartbeat, missed/killed intervals, per-macro execution log | M2 |
 | FR-10 | Bridged external devices (watch/secondary phone) act as gesture trigger sources over BLE/LAN | M4 |
+| FR-11 | User can record a custom gesture by performing it multiple times; the engine captures sensor data across repetitions and derives a tolerance envelope used for live matching | M3 |
+| FR-12 | The recording flow gives per-repetition quality feedback and an overall confidence score, and lets the user test the recorded gesture live before saving | M3 |
+| FR-13 | Recorded gesture envelopes are persisted on-device, referenceable by macros, and manageable (rename, re-record, delete) from a dedicated library screen | M3 |
 
 ## Non-functional requirements
 
@@ -46,9 +49,9 @@ Users want hands-free, screen-free control of their phone: trigger system action
 
 - No root features, no private-API use.
 - No cloud account, sync, or macro marketplace.
-- No gesture *recording/learning* (custom thresholds are manual in v1).
 - No control of other devices (host executes; M4 only makes *other* devices into *sensors*).
+- No server-side ML training or model updates — gesture matching runs entirely on-device with a statistical envelope (mean ± k·std); no neural net inference.
 
 ## Acceptance traceability
 
-Milestone exit criteria in [ARCHITECTURE.md](ARCHITECTURE.md#milestone-roadmap) operationalize FR-1/2/3 (M1), FR-4/5 (M2), FR-6/7 (M3), FR-10 (M4).
+Milestone exit criteria in [ARCHITECTURE.md](ARCHITECTURE.md#milestone-roadmap) operationalize FR-1/2/3 (M1), FR-4/5 (M2), FR-6/7/11/12/13 (M3), FR-10 (M4).
