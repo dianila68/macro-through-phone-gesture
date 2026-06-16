@@ -1,11 +1,8 @@
 package io.github.dianila68.gesturemacro.core.actions
 
-import io.github.dianila68.gesturemacro.core.serialization.AccessibilityAction
+import io.github.dianila68.gesturemacro.core.engine.ExecutorRegistrySpi
 import io.github.dianila68.gesturemacro.core.serialization.GestureMacro
-import io.github.dianila68.gesturemacro.core.serialization.IntentAction
 import io.github.dianila68.gesturemacro.core.serialization.MacroAction
-import io.github.dianila68.gesturemacro.core.serialization.MediaControlAction
-import io.github.dianila68.gesturemacro.core.serialization.SystemToggleAction
 import kotlinx.coroutines.delay
 
 sealed class ExecResult {
@@ -20,24 +17,23 @@ fun interface ActionExecutor {
 }
 
 /**
+ * ticket-038: Routes actions through [ExecutorRegistrySpi] map lookup instead of a
+ * sealed when-expression. Adding a new action type requires only a new [MacroAction]
+ * subclass, a new [ActionExecutor], and a registry entry — no changes here.
+ *
  * Runs a macro's actions sequentially, honoring delay_after_ms, stopping on
  * fatal failures, and reporting every result for the audit log (threat T4).
  */
-class ActionDispatcher(
-    private val systemToggle: ActionExecutor,
-    private val mediaControl: ActionExecutor,
-    private val intent: ActionExecutor,
-    private val accessibility: ActionExecutor,
-) {
+class ActionDispatcher(private val registry: ExecutorRegistrySpi) {
     suspend fun run(macro: GestureMacro): List<ExecResult> {
+        val executors = registry.executors()
         val results = mutableListOf<ExecResult>()
         for (action in macro.actions) {
-            val executor = when (action) {
-                is SystemToggleAction -> systemToggle
-                is MediaControlAction -> mediaControl
-                is IntentAction -> intent
-                is AccessibilityAction -> accessibility
-            }
+            val executor = executors[action.actionType]
+                ?: run {
+                    results += ExecResult.Failure("No executor registered for action type '${action.actionType}'", fatal = true)
+                    break
+                }
             val result = try {
                 executor.execute(action)
             } catch (e: Exception) {

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -42,6 +43,13 @@ android {
     }
 }
 
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.files("config/detekt/detekt.yml"))
+    baseline = file("$projectDir/../config/detekt/detekt-baseline.xml")
+    parallel = true
+}
+
 // Room schema export (ticket-007): committed schemas back the migration test harness.
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
@@ -58,6 +66,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.accompanist.drawablepainter)
     implementation(libs.kaml)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

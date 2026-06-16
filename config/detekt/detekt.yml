@@ -1,0 +1,100 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+# Complexity rules — tuned for an Android app where some functions are necessarily long
+# (Compose composables, when-expression dispatch, executor branches).
+complexity:
+  active: true
+  LongMethod:
+    active: true
+    threshold: 80         # Compose screens legitimately exceed the default 60
+  LongParameterList:
+    active: true
+    threshold: 8          # buildMacro / ActionDispatcher constructors are acceptable
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 20
+    thresholdInClasses: 15
+    thresholdInInterfaces: 5
+    thresholdInObjects: 12
+    thresholdInEnums: 5
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 20         # FallDetector state machine and when-dispatch are complex by design
+  NestedBlockDepth:
+    active: true
+    threshold: 5
+
+# Coroutines — flag common mistakes with suspend functions and context handling
+coroutines:
+  active: true
+
+# Empty blocks catch common "forgot to handle" mistakes
+empty-blocks:
+  active: true
+
+# Exception handling — executors return ExecResult so these apply to unexpected paths only
+exceptions:
+  active: true
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames:
+      - ArrayIndexOutOfBoundsException
+      - Error
+      - Throwable
+    allowedExceptionNameRegex: "_|(ignore|Ignore|expected|Expected)"
+  SwallowedException:
+    active: true
+
+# Naming rules
+naming:
+  active: true
+  FunctionNaming:
+    active: true
+    # Compose @Composable functions use PascalCase by convention
+    functionPattern: '[a-z][a-zA-Z0-9]*|[A-Z][a-zA-Z0-9]*'
+
+# Performance rules
+performance:
+  active: true
+
+# Potential bugs
+potential-bugs:
+  active: true
+  # Exhaustive when is enforced by Kotlin's sealed class — no additional config needed
+  UnnecessaryNotNullOperator:
+    active: true
+
+# Style
+style:
+  active: true
+  MagicNumber:
+    active: true
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '1'
+      - '2'
+      - '15'    # default countdown seconds
+      - '500'   # common delay_after_ms
+      - '2000'  # common cooldown_ms
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotation: true
+    ignoreNamedArgument: true
+    ignoreEnums: true
+  ReturnCount:
+    active: true
+    max: 4      # Executors have early-return guard clauses
+    excludedFunctions:
+      - 'equals'
+  WildcardImport:
+    active: true
+    excludeImports:
+      - 'java.util.*'
+      - 'kotlinx.coroutines.*'
