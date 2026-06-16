@@ -81,6 +81,8 @@ class GestureEvent(
     val pattern: GesturePattern,
     val t: Long,
     val confidence: Float,
+    /** For RECORDED_GESTURE events: the envelopeId that fired, used by MacroEngine for per-macro matching. */
+    val sourceId: String? = null,
 )
 
 const val EARTH_GRAVITY = 9.81f

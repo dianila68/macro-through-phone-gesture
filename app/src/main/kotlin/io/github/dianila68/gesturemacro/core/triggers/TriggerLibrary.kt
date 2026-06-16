@@ -41,10 +41,15 @@ data class TriggerSpec(
     val defaultCooldownMs: Long,
     /** Plain-language note on what raising sensitivity does for this trigger. */
     val sensitivityHint: String,
+    /**
+     * True when detectors are built per-macro at service startup (e.g. RECORDED_GESTURE),
+     * not once per pattern via [detectorFactory]. Allows available=true with detectorFactory=null.
+     */
+    val perMacroSetup: Boolean = false,
     private val detectorFactory: ((Float) -> GestureDetector)?,
 ) {
     init {
-        require(available == (detectorFactory != null)) {
+        require(available == (detectorFactory != null) || (available && perMacroSetup)) {
             "available must match the presence of a detector factory for $pattern"
         }
     }
@@ -246,6 +251,19 @@ object TriggerLibrary {
             defaultCooldownMs = 500,
             sensitivityHint = "Higher = a smaller rotation angle triggers it.",
             detectorFactory = { s -> RotationVectorDetector(s) },
+        ),
+
+        // ── ticket-049: Recorded gesture ────────────────────────────────────
+        TriggerSpec(
+            pattern = PatternKind.RECORDED_GESTURE,
+            sensor = SensorKind.ACCELEROMETER,
+            displayName = "Recorded gesture",
+            description = "Fires when a custom gesture you recorded is matched by the live detector.",
+            available = true,
+            perMacroSetup = true,
+            defaultCooldownMs = 2_000,
+            sensitivityHint = "Higher = stricter match required (fewer false positives, may miss weaker executions).",
+            detectorFactory = null,
         ),
 
         // ── ticket-053: Ambient temperature ──────────────────────────────────

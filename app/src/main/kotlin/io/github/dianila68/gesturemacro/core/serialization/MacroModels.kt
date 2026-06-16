@@ -49,6 +49,8 @@ data class Trigger(
     @SerialName("cooldown_ms") val cooldownMs: Long = 2_000,
     @SerialName("custom_thresholds") val customThresholds: Map<String, Float> = emptyMap(),
     @SerialName("source_device") val sourceDevice: String? = null,
+    /** ticket-049: ID of the RecordedGestureEntity this trigger matches against. */
+    @SerialName("recorded_gesture_id") val recordedGestureId: String? = null,
 ) {
     init {
         require(sensitivity in 0f..1f) { "trigger.sensitivity must be within 0.0..1.0" }
@@ -58,6 +60,9 @@ data class Trigger(
         }
         require(sourceDevice == null || sensor == SensorKind.EXTERNAL) {
             "trigger.source_device is only valid when sensor == external"
+        }
+        require(recordedGestureId == null || pattern == PatternKind.RECORDED_GESTURE) {
+            "trigger.recorded_gesture_id is only valid when pattern == recorded_gesture"
         }
     }
 }

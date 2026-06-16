@@ -20,6 +20,7 @@ import io.github.dianila68.gesturemacro.android.actions.IntentExecutor
 import io.github.dianila68.gesturemacro.android.actions.LocationAlertExecutor
 import io.github.dianila68.gesturemacro.android.actions.MediaControlExecutor
 import io.github.dianila68.gesturemacro.android.actions.SoundExecutor
+import io.github.dianila68.gesturemacro.android.data.RecordedGestureStore
 import io.github.dianila68.gesturemacro.core.actions.ActionDispatcher
 import io.github.dianila68.gesturemacro.core.engine.BuiltinExecutorRegistry
 import io.github.dianila68.gesturemacro.android.data.MacroStore
@@ -31,6 +32,7 @@ import io.github.dianila68.gesturemacro.core.sensors.ProximityWaveDetector
 import io.github.dianila68.gesturemacro.core.sensors.SensorSample
 import io.github.dianila68.gesturemacro.core.sensors.SensorType
 import io.github.dianila68.gesturemacro.core.serialization.PatternKind
+import io.github.dianila68.gesturemacro.core.triggers.RecordedGestureDetector
 import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +64,7 @@ class GestureCaptureService : Service() {
     private lateinit var wakeLock: WakeLockGuard
     private lateinit var dispatcher: ActionDispatcher
     private lateinit var engine: MacroEngine
+    private lateinit var recordedGestureStore: RecordedGestureStore
     private var pipelineJob: Job? = null
 
     override fun onCreate() {
@@ -79,6 +82,7 @@ class GestureCaptureService : Service() {
         dispatcher = ActionDispatcher(registry)
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         engine = MacroEngine(screenOn = { powerManager.isInteractive })
+        recordedGestureStore = RecordedGestureStore(this)
         createChannel()
     }
 
@@ -125,14 +129,18 @@ class GestureCaptureService : Service() {
      * so an empty set registers no sensors at all. Each sample is paired with the
      * detector list that must see it (every detector is fed to keep its state in
      * step; detectors ignore samples from other sensors).
+     *
+     * RECORDED_GESTURE detectors are built per-macro (each macro has its own envelope),
+     * loaded from [RecordedGestureStore] here.
      */
-    private fun detectorStream(
+    private suspend fun detectorStream(
         stream: AndroidSensorStream,
         patterns: Set<PatternKind>,
     ): Flow<Pair<List<GestureDetector>, SensorSample>> {
         // Proximity wave needs the sensor's maximumRange for relative near/far classification.
         val proximityMaxRange = stream.sensorMaxRange(SensorType.PROXIMITY)
-        val detectors = patterns.mapNotNull { pattern ->
+        val standardDetectors = patterns.mapNotNull { pattern ->
+            if (pattern == PatternKind.RECORDED_GESTURE) return@mapNotNull null  // handled below
             val spec = TriggerLibrary.forPattern(pattern) ?: return@mapNotNull null
             if (pattern == PatternKind.PROXIMITY_WAVE && proximityMaxRange != null) {
                 ProximityWaveDetector(maximumRange = proximityMaxRange)
@@ -140,6 +148,20 @@ class GestureCaptureService : Service() {
                 spec.buildDetector()
             }
         }
+
+        // Per-macro recorded gesture detectors: one RecordedGestureDetector per enabled macro
+        // that references a stored envelope via trigger.recordedGestureId.
+        val recordedDetectors: List<GestureDetector> = if (PatternKind.RECORDED_GESTURE in patterns) {
+            MacroStore.macros.value
+                .filter { it.enabled && it.trigger.pattern == PatternKind.RECORDED_GESTURE }
+                .mapNotNull { macro ->
+                    val envelopeId = macro.trigger.recordedGestureId ?: return@mapNotNull null
+                    val envelope = recordedGestureStore.getEnvelope(envelopeId) ?: return@mapNotNull null
+                    RecordedGestureDetector(envelope, envelopeId, macro.trigger.sensitivity)
+                }
+        } else emptyList()
+
+        val detectors = standardDetectors + recordedDetectors
         if (detectors.isEmpty()) return emptyFlow()
         val streams = detectors.map { it.sensor }.distinct().map { sensorType ->
             stream.samples(sensorType, samplingPeriodUs = SAMPLING_PERIOD_US)

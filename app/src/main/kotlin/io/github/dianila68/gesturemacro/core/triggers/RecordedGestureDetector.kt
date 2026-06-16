@@ -65,7 +65,7 @@ class RecordedGestureDetector(
 
         if (matchFraction >= matchThreshold) {
             lastFiredMs = nowMs
-            return GestureEvent(pattern = GesturePattern.RECORDED_GESTURE, t = nowMs, confidence = matchFraction)
+            return GestureEvent(pattern = GesturePattern.RECORDED_GESTURE, t = nowMs, confidence = matchFraction, sourceId = envelopeId)
         }
         return null
     }

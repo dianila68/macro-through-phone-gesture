@@ -34,6 +34,7 @@ class MacroEngine(
         return macros.filter { macro ->
             macro.enabled &&
                 macro.trigger.pattern.matches(event.pattern) &&
+                recordedGestureMatches(macro, event) &&
                 screenStateAllows(macro.constraints.screenState) &&
                 timeWindowAllows(macro, minuteOfDay) &&
                 conditionHolds(macro, now) &&
@@ -44,6 +45,11 @@ class MacroEngine(
     fun reset() {
         lastFiredAt.clear()
         conditionEvaluator.reset()
+    }
+
+    private fun recordedGestureMatches(macro: GestureMacro, event: GestureEvent): Boolean {
+        if (macro.trigger.pattern != PatternKind.RECORDED_GESTURE) return true
+        return macro.trigger.recordedGestureId != null && macro.trigger.recordedGestureId == event.sourceId
     }
 
     private fun conditionHolds(macro: GestureMacro, nowMs: Long): Boolean {
@@ -103,6 +109,19 @@ class MacroEngine(
             PatternKind.ALTITUDE_RISE -> pattern == GesturePattern.ALTITUDE_RISE
             PatternKind.ALTITUDE_FALL -> pattern == GesturePattern.ALTITUDE_FALL
             PatternKind.HEADING_CHANGED -> pattern == GesturePattern.HEADING_CHANGED
+            PatternKind.SIGNIFICANT_MOTION -> pattern == GesturePattern.SIGNIFICANT_MOTION
+            PatternKind.ROTATION_CHANGED -> pattern == GesturePattern.ROTATION_CHANGED
+            PatternKind.TEMPERATURE_HIGH -> pattern == GesturePattern.TEMPERATURE_HIGH
+            PatternKind.TEMPERATURE_LOW -> pattern == GesturePattern.TEMPERATURE_LOW
+            PatternKind.HUMIDITY_HIGH -> pattern == GesturePattern.HUMIDITY_HIGH
+            PatternKind.HUMIDITY_LOW -> pattern == GesturePattern.HUMIDITY_LOW
+            PatternKind.EXTERNAL_THRESHOLD -> pattern == GesturePattern.EXTERNAL_THRESHOLD
+            PatternKind.RECORDED_GESTURE -> pattern == GesturePattern.RECORDED_GESTURE
+            PatternKind.ACTIVITY_WALKING -> pattern == GesturePattern.ACTIVITY_WALKING
+            PatternKind.ACTIVITY_RUNNING -> pattern == GesturePattern.ACTIVITY_RUNNING
+            PatternKind.ACTIVITY_IN_VEHICLE -> pattern == GesturePattern.ACTIVITY_IN_VEHICLE
+            PatternKind.ACTIVITY_ON_BICYCLE -> pattern == GesturePattern.ACTIVITY_ON_BICYCLE
+            PatternKind.ACTIVITY_STILL -> pattern == GesturePattern.ACTIVITY_STILL
         }
     }
 }
