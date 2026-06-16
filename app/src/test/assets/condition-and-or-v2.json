@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "id": "test-condition-v2",
+  "name": "Condition AND-OR fixture",
+  "trigger": {"sensor": "accelerometer", "pattern": "shake"},
+  "actions": [{"type": "system_toggle", "target": "wifi"}],
+  "condition": {
+    "type": "and",
+    "children": [
+      {"type": "pattern", "pattern": "step_detected", "isStateGuard": false},
+      {"type": "or", "children": [
+        {"type": "pattern", "pattern": "going_dark", "isStateGuard": true},
+        {"type": "not", "child": {"type": "pattern", "pattern": "is_stationary", "isStateGuard": true}}
+      ]}
+    ]
+  }
+}

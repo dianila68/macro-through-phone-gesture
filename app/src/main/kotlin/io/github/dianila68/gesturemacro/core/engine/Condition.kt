@@ -2,6 +2,8 @@ package io.github.dianila68.gesturemacro.core.engine
 
 import io.github.dianila68.gesturemacro.core.sensors.GestureEvent
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
  * ticket-033: Condition model for composed multi-sensor triggers.
@@ -22,11 +24,14 @@ import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
  * (governed by ADR-0002 / ticket-022). That migration is tracked separately;
  * this file is the pure-JVM evaluator the engine will consume.
  */
+@Serializable
 sealed class Condition {
     /** Evaluates the condition against [state]; returns true when it holds. */
     abstract fun evaluate(state: ConditionState): Boolean
 
     /** Leaf: true when a specific [pattern] has fired (event or active state). */
+    @Serializable
+    @SerialName("pattern")
     data class Pattern(
         val pattern: GesturePattern,
         /** When true this is a *state* guard (continuously active); when false an event edge. */
@@ -37,6 +42,8 @@ sealed class Condition {
     }
 
     /** Combinator: true when ALL [children] hold. */
+    @Serializable
+    @SerialName("and")
     data class And(val children: List<Condition>) : Condition() {
         constructor(vararg children: Condition) : this(children.toList())
 
@@ -44,6 +51,8 @@ sealed class Condition {
     }
 
     /** Combinator: true when ANY [children] holds. */
+    @Serializable
+    @SerialName("or")
     data class Or(val children: List<Condition>) : Condition() {
         constructor(vararg children: Condition) : this(children.toList())
 
@@ -51,6 +60,8 @@ sealed class Condition {
     }
 
     /** Combinator: inverts its single [child]. */
+    @Serializable
+    @SerialName("not")
     data class Not(val child: Condition) : Condition() {
         override fun evaluate(state: ConditionState): Boolean = !child.evaluate(state)
     }
@@ -63,6 +74,7 @@ sealed class Condition {
  * [activeStates] — patterns whose detectors have signalled and that haven't been
  *                  cleared by an opposing event (e.g. GOING_DARK active until GOING_BRIGHT).
  */
+@Serializable
 data class ConditionState(
     val recentEvents: Set<GesturePattern> = emptySet(),
     val activeStates: Set<GesturePattern> = emptySet(),

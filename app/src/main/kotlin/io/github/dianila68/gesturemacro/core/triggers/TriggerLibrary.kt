@@ -1,9 +1,13 @@
 package io.github.dianila68.gesturemacro.core.triggers
 
 import io.github.dianila68.gesturemacro.core.sensors.AltitudeFallDetector
-import io.github.dianila68.gesturemacro.core.sensors.HeadingChangedDetector
 import io.github.dianila68.gesturemacro.core.sensors.AltitudeRiseDetector
 import io.github.dianila68.gesturemacro.core.sensors.DoubleShakeDetector
+import io.github.dianila68.gesturemacro.core.sensors.ExternalDeviceRegistry
+import io.github.dianila68.gesturemacro.core.sensors.HeadingChangedDetector
+import io.github.dianila68.gesturemacro.core.sensors.RotationVectorDetector
+import io.github.dianila68.gesturemacro.core.sensors.SignificantMotionDetector
+import io.github.dianila68.gesturemacro.core.sensors.ThresholdCrossingDetector
 import io.github.dianila68.gesturemacro.core.sensors.FallDetector
 import io.github.dianila68.gesturemacro.core.sensors.FlipDetector
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
@@ -207,15 +211,135 @@ object TriggerLibrary {
             sensitivityHint = "Higher = a smaller altitude change triggers it.",
             detectorFactory = { s -> AltitudeFallDetector(s) },
         ),
+
+        // ── ticket-031: Magnetometer heading ────────────────────────────────
         TriggerSpec(
             pattern = PatternKind.HEADING_CHANGED,
             sensor = SensorKind.MAGNETOMETER,
             displayName = "Heading changed (compass rotation)",
-            description = "Fires when the phone has rotated significantly from its last compass heading.",
+            description = "Fires when the device rotates beyond a compass-heading threshold.",
             available = true,
-            defaultCooldownMs = 3_000,
-            sensitivityHint = "Higher = a smaller rotation angle triggers it.",
+            defaultCooldownMs = 2_000,
+            sensitivityHint = "Higher = a smaller compass rotation triggers it (tight = 15°, loose = 90°).",
             detectorFactory = { s -> HeadingChangedDetector(s) },
+        ),
+
+        // ── ticket-047: Significant motion ──────────────────────────────────
+        TriggerSpec(
+            pattern = PatternKind.SIGNIFICANT_MOTION,
+            sensor = SensorKind.SIGNIFICANT_MOTION,
+            displayName = "Significant motion (device moved meaningfully)",
+            description = "Fires via Android TYPE_SIGNIFICANT_MOTION one-shot trigger when the device moves significantly.",
+            available = true,
+            defaultCooldownMs = 5_000,
+            sensitivityHint = "Sensitivity has no effect — fired by the hardware one-shot trigger.",
+            detectorFactory = { _ -> SignificantMotionDetector() },
+        ),
+
+        // ── ticket-051: Rotation vector ──────────────────────────────────────
+        TriggerSpec(
+            pattern = PatternKind.ROTATION_CHANGED,
+            sensor = SensorKind.ROTATION_VECTOR,
+            displayName = "Rotation changed",
+            description = "Fires when device orientation changes beyond a threshold angle.",
+            available = true,
+            defaultCooldownMs = 500,
+            sensitivityHint = "Higher = a smaller rotation angle triggers it.",
+            detectorFactory = { s -> RotationVectorDetector(s) },
+        ),
+
+        // ── ticket-053: Ambient temperature ──────────────────────────────────
+        TriggerSpec(
+            pattern = PatternKind.TEMPERATURE_HIGH,
+            sensor = SensorKind.AMBIENT_TEMPERATURE,
+            displayName = "Temperature high",
+            description = "Fires when ambient temperature rises above threshold.",
+            available = false,
+            defaultCooldownMs = 60_000,
+            sensitivityHint = "Higher = fires at a lower temperature threshold.",
+            detectorFactory = null,
+        ),
+        TriggerSpec(
+            pattern = PatternKind.TEMPERATURE_LOW,
+            sensor = SensorKind.AMBIENT_TEMPERATURE,
+            displayName = "Temperature low",
+            description = "Fires when ambient temperature drops below threshold.",
+            available = false,
+            defaultCooldownMs = 60_000,
+            sensitivityHint = "Higher = fires at a higher temperature threshold.",
+            detectorFactory = null,
+        ),
+        TriggerSpec(
+            pattern = PatternKind.HUMIDITY_HIGH,
+            sensor = SensorKind.RELATIVE_HUMIDITY,
+            displayName = "Humidity high",
+            description = "Fires when relative humidity rises above threshold.",
+            available = false,
+            defaultCooldownMs = 60_000,
+            sensitivityHint = "Higher = fires at a lower humidity threshold.",
+            detectorFactory = null,
+        ),
+        TriggerSpec(
+            pattern = PatternKind.HUMIDITY_LOW,
+            sensor = SensorKind.RELATIVE_HUMIDITY,
+            displayName = "Humidity low",
+            description = "Fires when relative humidity drops below threshold.",
+            available = false,
+            defaultCooldownMs = 60_000,
+            sensitivityHint = "Higher = fires at a higher humidity threshold.",
+            detectorFactory = null,
+        ),
+
+        // ── ticket-048: Activity recognition (via Google Play Services) ──────────
+        TriggerSpec(
+            pattern = PatternKind.ACTIVITY_WALKING,
+            sensor = SensorKind.ACTIVITY_RECOGNITION,
+            displayName = "Started walking",
+            description = "Fires when the device detects the user has started walking.",
+            available = false,
+            defaultCooldownMs = 30_000,
+            sensitivityHint = "Sensitivity has no effect — activity transitions come from Play Services.",
+            detectorFactory = null,
+        ),
+        TriggerSpec(
+            pattern = PatternKind.ACTIVITY_RUNNING,
+            sensor = SensorKind.ACTIVITY_RECOGNITION,
+            displayName = "Started running",
+            description = "Fires when the device detects the user has started running.",
+            available = false,
+            defaultCooldownMs = 30_000,
+            sensitivityHint = "Sensitivity has no effect.",
+            detectorFactory = null,
+        ),
+        TriggerSpec(
+            pattern = PatternKind.ACTIVITY_IN_VEHICLE,
+            sensor = SensorKind.ACTIVITY_RECOGNITION,
+            displayName = "In vehicle",
+            description = "Fires when the device detects the user is in a vehicle.",
+            available = false,
+            defaultCooldownMs = 60_000,
+            sensitivityHint = "Sensitivity has no effect.",
+            detectorFactory = null,
+        ),
+        TriggerSpec(
+            pattern = PatternKind.ACTIVITY_ON_BICYCLE,
+            sensor = SensorKind.ACTIVITY_RECOGNITION,
+            displayName = "On bicycle",
+            description = "Fires when the device detects the user is cycling.",
+            available = false,
+            defaultCooldownMs = 60_000,
+            sensitivityHint = "Sensitivity has no effect.",
+            detectorFactory = null,
+        ),
+        TriggerSpec(
+            pattern = PatternKind.ACTIVITY_STILL,
+            sensor = SensorKind.ACTIVITY_RECOGNITION,
+            displayName = "Became still",
+            description = "Fires when the device detects the user has stopped moving.",
+            available = false,
+            defaultCooldownMs = 30_000,
+            sensitivityHint = "Sensitivity has no effect.",
+            detectorFactory = null,
         ),
     )
 
@@ -228,3 +352,18 @@ object TriggerLibrary {
     fun detectors(sensitivity: Float = TriggerSpec.DEFAULT_SENSITIVITY): List<GestureDetector> =
         available.mapNotNull { it.buildDetector(sensitivity) }
 }
+
+/** ticket-054: Build TriggerSpecs dynamically for all channels on a paired external device. */
+fun TriggerLibrary.forDevice(deviceId: String): List<TriggerSpec> =
+    ExternalDeviceRegistry.channelsFor(deviceId).map { ch ->
+        TriggerSpec(
+            pattern = PatternKind.EXTERNAL_THRESHOLD,
+            sensor = SensorKind.EXTERNAL,
+            displayName = "${ch.channelName} (${ch.unit}) — $deviceId",
+            description = "External sensor channel from device $deviceId",
+            available = false,
+            defaultCooldownMs = 5_000,
+            sensitivityHint = "Higher = a smaller value change triggers it.",
+            detectorFactory = null,
+        )
+    }

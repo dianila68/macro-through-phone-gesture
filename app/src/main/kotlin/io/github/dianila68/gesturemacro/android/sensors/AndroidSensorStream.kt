@@ -48,7 +48,15 @@ class AndroidSensorStream(context: Context) : SensorStream {
         SensorType.STEP_COUNTER -> Sensor.TYPE_STEP_COUNTER
         SensorType.LIGHT -> Sensor.TYPE_LIGHT
         SensorType.PRESSURE -> Sensor.TYPE_PRESSURE
+        // TYPE_SIGNIFICANT_MOTION requires TriggerEventListener + requestTriggerSensor(); one-shot, must re-arm after each event
+        SensorType.SIGNIFICANT_MOTION -> android.hardware.Sensor.TYPE_SIGNIFICANT_MOTION
+        SensorType.ROTATION_VECTOR -> android.hardware.Sensor.TYPE_ROTATION_VECTOR
+        SensorType.AMBIENT_TEMPERATURE -> android.hardware.Sensor.TYPE_AMBIENT_TEMPERATURE
+        SensorType.RELATIVE_HUMIDITY -> android.hardware.Sensor.TYPE_RELATIVE_HUMIDITY
         SensorType.MAGNETOMETER -> Sensor.TYPE_MAGNETIC_FIELD
+        SensorType.EXTERNAL -> error("EXTERNAL sensor has no Android sensor type; use BleSensorStream or WebSocketSensorStream")
+        // ACTIVITY_RECOGNITION uses Google Play Services ActivityRecognitionClient, not SensorManager
+        SensorType.ACTIVITY_RECOGNITION -> error("ACTIVITY_RECOGNITION is handled by ActivityRecognitionStream, not SensorManager")
     }
 
     companion object {

@@ -2,6 +2,7 @@ package io.github.dianila68.gesturemacro.core.serialization
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import io.github.dianila68.gesturemacro.core.engine.Condition
 
 /**
  * Kotlin mirror of schema/gesture-macro-v1.json — the app's public macro contract.
@@ -86,6 +87,21 @@ enum class SensorKind {
 
     @SerialName("magnetometer")
     MAGNETOMETER,
+
+    @SerialName("activity_recognition")
+    ACTIVITY_RECOGNITION,
+
+    @SerialName("significant_motion")
+    SIGNIFICANT_MOTION,
+
+    @SerialName("rotation_vector")
+    ROTATION_VECTOR,
+
+    @SerialName("ambient_temperature")
+    AMBIENT_TEMPERATURE,
+
+    @SerialName("relative_humidity")
+    RELATIVE_HUMIDITY,
 }
 
 @Serializable
@@ -138,12 +154,54 @@ enum class PatternKind {
 
     @SerialName("heading_changed")
     HEADING_CHANGED,
+
+    // ticket-048: Activity recognition patterns
+    @SerialName("activity_walking")
+    ACTIVITY_WALKING,
+
+    @SerialName("activity_running")
+    ACTIVITY_RUNNING,
+
+    @SerialName("activity_in_vehicle")
+    ACTIVITY_IN_VEHICLE,
+
+    @SerialName("activity_on_bicycle")
+    ACTIVITY_ON_BICYCLE,
+
+    @SerialName("activity_still")
+    ACTIVITY_STILL,
+
+    // ticket-047: Significant motion
+    @SerialName("significant_motion")
+    SIGNIFICANT_MOTION,
+
+    // ticket-051: Rotation vector
+    @SerialName("rotation_changed")
+    ROTATION_CHANGED,
+
+    // ticket-053: Temperature and humidity
+    @SerialName("temperature_high")
+    TEMPERATURE_HIGH,
+
+    @SerialName("temperature_low")
+    TEMPERATURE_LOW,
+
+    @SerialName("humidity_high")
+    HUMIDITY_HIGH,
+
+    @SerialName("humidity_low")
+    HUMIDITY_LOW,
+
+    // ticket-054: External sensor threshold
+    @SerialName("external_threshold")
+    EXTERNAL_THRESHOLD,
 }
 
 @Serializable
 data class Constraints(
     @SerialName("screen_state") val screenState: ScreenState = ScreenState.ANY,
     @SerialName("time_window") val timeWindow: TimeWindow? = null,
+    @SerialName("location") val location: LocationConstraint = LocationConstraint(),
 )
 
 @Serializable
@@ -279,5 +337,49 @@ data class LocationAlertAction(
         require(contactName.isNotBlank()) { "location_alert: contact_name must not be blank" }
         require(contactPhone.isNotBlank()) { "location_alert: contact_phone must not be blank" }
         require(countdownSec >= 0) { "location_alert: countdown_sec must be >= 0" }
+    }
+}
+
+/**
+ * ticket-056: Fire-and-forget HTTP webhook when a macro triggers.
+ * The external system (Home Assistant, IFTTT, etc.) handles actuation.
+ */
+@Serializable
+@SerialName("webhook")
+data class WebhookAction(
+    val url: String,
+    val method: String = "POST",
+    val headers: Map<String, String> = emptyMap(),
+    @SerialName("body_template") val bodyTemplate: String = "",
+    @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
+) : MacroAction() {
+    override val actionType: String get() = "webhook"
+    init {
+        require(url.isNotBlank()) { "webhook: url must not be blank" }
+        require(method in setOf("POST", "GET", "PUT", "PATCH", "DELETE")) {
+            "webhook: method must be one of POST, GET, PUT, PATCH, DELETE"
+        }
+    }
+}
+
+/**
+ * ticket-056: Publish an MQTT message when a macro triggers.
+ * Stateless connect → publish → disconnect per firing.
+ */
+@Serializable
+@SerialName("mqtt_publish")
+data class MqttPublishAction(
+    @SerialName("broker_url") val brokerUrl: String,
+    val topic: String,
+    val payload: String = "",
+    val qos: Int = 0,
+    val retain: Boolean = false,
+    @SerialName("delay_after_ms") override val delayAfterMs: Long = 0,
+) : MacroAction() {
+    override val actionType: String get() = "mqtt_publish"
+    init {
+        require(brokerUrl.isNotBlank()) { "mqtt_publish: broker_url must not be blank" }
+        require(topic.isNotBlank()) { "mqtt_publish: topic must not be blank" }
+        require(qos in 0..2) { "mqtt_publish: qos must be 0, 1, or 2" }
     }
 }
