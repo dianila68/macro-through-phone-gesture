@@ -31,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,21 +39,43 @@ import androidx.compose.ui.unit.dp
 import io.github.dianila68.gesturemacro.service.GestureCaptureService
 import io.github.dianila68.gesturemacro.service.Heartbeat
 import io.github.dianila68.gesturemacro.service.MacroAccessibilityService
+import io.github.dianila68.gesturemacro.ui.GestureRecordingScreen
 import io.github.dianila68.gesturemacro.ui.MacroManagerSection
+import io.github.dianila68.gesturemacro.ui.RecordedGesturesScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                EngineScreen()
+                RootScreen()
             }
         }
     }
 }
 
+/** Top-level screens reachable from the home screen. State-based nav (no NavHost dependency). */
+private enum class Screen { HOME, RECORDED_GESTURES, RECORDING }
+
 @Composable
-fun EngineScreen() {
+private fun RootScreen() {
+    var screen by remember { mutableStateOf(Screen.HOME) }
+    when (screen) {
+        Screen.HOME -> EngineScreen(
+            onManageRecordedGestures = { screen = Screen.RECORDED_GESTURES },
+        )
+        Screen.RECORDED_GESTURES -> RecordedGesturesScreen(
+            onRecord = { screen = Screen.RECORDING },
+        )
+        Screen.RECORDING -> GestureRecordingScreen(
+            onSaved = { screen = Screen.RECORDED_GESTURES },
+            onCancel = { screen = Screen.RECORDED_GESTURES },
+        )
+    }
+}
+
+@Composable
+fun EngineScreen(onManageRecordedGestures: () -> Unit = {}) {
     val context = LocalContext.current
     val running by GestureCaptureService.running.collectAsState()
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -98,6 +121,9 @@ fun EngineScreen() {
             }
             BatteryExemptionCard(context)
             AccessibilityCard(context)
+            OutlinedButton(onClick = onManageRecordedGestures, modifier = Modifier.fillMaxWidth()) {
+                Text(text = "Recorded gestures")
+            }
             MacroManagerSection()
         }
     }

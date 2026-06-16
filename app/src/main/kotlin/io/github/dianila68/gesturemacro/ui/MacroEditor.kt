@@ -40,6 +40,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import androidx.compose.runtime.collectAsState
+import io.github.dianila68.gesturemacro.android.data.RecordedGestureEntity
+import io.github.dianila68.gesturemacro.android.data.RecordedGestureStore
 import io.github.dianila68.gesturemacro.core.actions.ActionAssembly
 import io.github.dianila68.gesturemacro.core.actions.ActionCatalog
 import io.github.dianila68.gesturemacro.core.actions.ActionCategory
@@ -52,6 +55,7 @@ import io.github.dianila68.gesturemacro.core.serialization.IntentAction
 import io.github.dianila68.gesturemacro.core.serialization.LocationAlertAction
 import io.github.dianila68.gesturemacro.core.serialization.MacroAction
 import io.github.dianila68.gesturemacro.core.serialization.MediaControlAction
+import io.github.dianila68.gesturemacro.core.serialization.PatternKind
 import io.github.dianila68.gesturemacro.core.serialization.PlaySoundAction
 import io.github.dianila68.gesturemacro.core.serialization.ScreenState
 import io.github.dianila68.gesturemacro.core.serialization.SoundMode
@@ -111,6 +115,10 @@ fun MacroEditorScreen(initial: GestureMacro?, onSave: (GestureMacro) -> Unit, on
     }
     var sensitivity by remember { mutableStateOf(initial?.trigger?.sensitivity ?: TriggerSpec.DEFAULT_SENSITIVITY) }
     var cooldownMs by remember { mutableStateOf((initial?.trigger?.cooldownMs ?: spec.defaultCooldownMs).toString()) }
+    var recordedGestureId by remember { mutableStateOf(initial?.trigger?.recordedGestureId) }
+    val context = LocalContext.current
+    val recordedStore = remember { RecordedGestureStore(context) }
+    val recordedGestures by recordedStore.observeAll().collectAsState(initial = emptyList())
     var screenState by remember { mutableStateOf(initial?.constraints?.screenState ?: ScreenState.ANY) }
     var timeRestricted by remember { mutableStateOf(initial?.constraints?.timeWindow != null) }
     var windowStart by remember { mutableStateOf(initial?.constraints?.timeWindow?.start.orEmpty()) }
@@ -142,6 +150,9 @@ fun MacroEditorScreen(initial: GestureMacro?, onSave: (GestureMacro) -> Unit, on
             onSensitivity = { sensitivity = it },
             cooldownMs = cooldownMs,
             onCooldown = { cooldownMs = it },
+            recordedGestures = recordedGestures,
+            recordedGestureId = recordedGestureId,
+            onRecordedGestureId = { recordedGestureId = it },
         )
 
         ConstraintsSection(
@@ -174,6 +185,7 @@ fun MacroEditorScreen(initial: GestureMacro?, onSave: (GestureMacro) -> Unit, on
                         screenState = screenState,
                         timeWindow = if (timeRestricted) TimeWindow(windowStart.trim(), windowEnd.trim()) else null,
                         drafts = actions,
+                        recordedGestureId = recordedGestureId,
                     )
                 }.onSuccess {
                     error = null
@@ -196,6 +208,9 @@ private fun TriggerSection(
     onSensitivity: (Float) -> Unit,
     cooldownMs: String,
     onCooldown: (String) -> Unit,
+    recordedGestures: List<RecordedGestureEntity>,
+    recordedGestureId: String?,
+    onRecordedGestureId: (String?) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -208,6 +223,13 @@ private fun TriggerSection(
                         Text(text = t.description, style = MaterialTheme.typography.bodySmall)
                     }
                 }
+            }
+            if (selected.pattern == PatternKind.RECORDED_GESTURE) {
+                RecordedGesturePicker(
+                    recordedGestures = recordedGestures,
+                    selectedId = recordedGestureId,
+                    onSelect = onRecordedGestureId,
+                )
             }
             Text(
                 text = "Sensitivity: ${(sensitivity * 100).toInt()}%",
@@ -223,6 +245,34 @@ private fun TriggerSection(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+    }
+}
+
+/** ticket-049: Picks which recorded gesture envelope a RECORDED_GESTURE trigger matches. */
+@Composable
+private fun RecordedGesturePicker(
+    recordedGestures: List<RecordedGestureEntity>,
+    selectedId: String?,
+    onSelect: (String?) -> Unit,
+) {
+    Column(modifier = Modifier.padding(start = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(text = "Which recorded gesture?", style = MaterialTheme.typography.labelMedium)
+        if (recordedGestures.isEmpty()) {
+            Text(
+                text = "No gestures recorded yet. Record one first from the Recorded Gestures screen.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        recordedGestures.forEach { g ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = selectedId == g.id, onClick = { onSelect(g.id) })
+                Text(
+                    text = "${g.name} (${(g.confidence * 100).toInt()}% confidence)",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
     }
 }
@@ -779,8 +829,12 @@ private fun buildMacro(
     screenState: ScreenState,
     timeWindow: TimeWindow?,
     drafts: List<DraftAction>,
+    recordedGestureId: String?,
 ): GestureMacro {
     require(drafts.isNotEmpty()) { "Add at least one action" }
+    if (spec.pattern == PatternKind.RECORDED_GESTURE) {
+        require(recordedGestureId != null) { "Pick a recorded gesture for this trigger" }
+    }
     val cooldown = cooldownMs.trim().ifEmpty { "0" }.toLongOrNull()
         ?: throw IllegalArgumentException("Cooldown must be a whole number of milliseconds")
     return GestureMacro(
@@ -793,6 +847,7 @@ private fun buildMacro(
             pattern = spec.pattern,
             sensitivity = sensitivity,
             cooldownMs = cooldown,
+            recordedGestureId = recordedGestureId.takeIf { spec.pattern == PatternKind.RECORDED_GESTURE },
         ),
         constraints = Constraints(screenState = screenState, timeWindow = timeWindow),
         actions = drafts.map { it.toAction() },
