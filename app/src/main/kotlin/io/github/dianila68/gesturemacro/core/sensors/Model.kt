@@ -58,6 +58,8 @@ enum class GesturePattern {
     @SerialName("humidity_low") HUMIDITY_LOW,
     // ticket-054
     @SerialName("external_threshold") EXTERNAL_THRESHOLD,
+    // ticket-049
+    @SerialName("recorded_gesture") RECORDED_GESTURE,
     // ticket-031 magnetometer heading
     @SerialName("heading_changed") HEADING_CHANGED,
     // ticket-048 activity recognition

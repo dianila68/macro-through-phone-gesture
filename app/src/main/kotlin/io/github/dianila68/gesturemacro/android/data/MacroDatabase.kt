@@ -61,9 +61,14 @@ interface MacroDao {
     fun observeRecentLogs(limit: Int = 50): Flow<List<ExecutionLogEntity>>
 }
 
-@Database(entities = [MacroEntity::class, ExecutionLogEntity::class], version = 2, exportSchema = true)
+@Database(
+    entities = [MacroEntity::class, ExecutionLogEntity::class, RecordedGestureEntity::class],
+    version = 3,
+    exportSchema = true,
+)
 abstract class MacroDatabase : RoomDatabase() {
     abstract fun macroDao(): MacroDao
+    abstract fun recordedGestureDao(): RecordedGestureDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -72,9 +77,32 @@ abstract class MacroDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `recorded_gesture` (
+                        `id` TEXT NOT NULL PRIMARY KEY,
+                        `name` TEXT NOT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        `envelope_json` TEXT NOT NULL,
+                        `confidence` REAL NOT NULL,
+                        `sample_count` INTEGER NOT NULL,
+                        `hmac` TEXT NOT NULL DEFAULT '',
+                        `enabled` INTEGER NOT NULL DEFAULT 1
+                    )"""
+                )
+            }
+        }
+
+        @Volatile private var instance: MacroDatabase? = null
+
+        fun get(context: Context): MacroDatabase = instance ?: synchronized(this) {
+            instance ?: build(context).also { instance = it }
+        }
+
         fun build(context: Context): MacroDatabase =
             Room.databaseBuilder(context.applicationContext, MacroDatabase::class.java, "macros.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
     }
