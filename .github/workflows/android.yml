@@ -26,7 +26,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build
-        run: ./gradlew build --stacktrace
+        run: ./gradlew build --stacktrace --info 2>&1 | tee build-output.txt; exit ${PIPESTATUS[0]}
+
+      - name: Upload build output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build-output.txt
+          if-no-files-found: ignore
 
       - name: Lint
         run: ./gradlew lint
