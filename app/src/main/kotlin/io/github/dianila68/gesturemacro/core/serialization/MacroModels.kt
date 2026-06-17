@@ -200,6 +200,10 @@ enum class PatternKind {
     // ticket-054: External sensor threshold
     @SerialName("external_threshold")
     EXTERNAL_THRESHOLD,
+
+    // ticket-049: Custom recorded gesture envelope
+    @SerialName("recorded_gesture")
+    RECORDED_GESTURE,
 }
 
 @Serializable
