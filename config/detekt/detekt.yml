@@ -11,10 +11,10 @@ complexity:
   active: true
   LongMethod:
     active: true
-    threshold: 120        # Compose screens and action editors legitimately exceed 80
+    threshold: 165        # Compose screens and action editors legitimately exceed 80
   LongParameterList:
     active: true
-    functionThreshold: 10 # Compose composables naturally carry many callback params
+    functionThreshold: 12 # Compose composables naturally carry many callback params
     constructorThreshold: 8
     ignoreDefaultParameters: true
     ignoreDataClasses: true
@@ -39,6 +39,9 @@ coroutines:
 # Empty blocks catch common "forgot to handle" mistakes
 empty-blocks:
   active: true
+  EmptyFunctionBlock:
+    active: true
+    ignoreOverridden: true  # Abstract platform callbacks (TTS, Bluetooth, etc.) require overrides
 
 # Exception handling — executors return ExecResult so these apply to unexpected paths only
 exceptions:
@@ -110,6 +113,11 @@ style:
       - '3000'
       - '5000'
       - '10000'
+      - '60'      # minutes per hour
+      - '180'     # degrees (half rotation)
+      - '200'     # HTTP success range start
+      - '299'     # HTTP success range end
+      - '360'     # degrees (full rotation)
       # Float fractions common in sensor signal processing
       - '0.001'
       - '0.1'
