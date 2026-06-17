@@ -62,6 +62,8 @@ import io.github.dianila68.gesturemacro.core.serialization.SoundMode
 import io.github.dianila68.gesturemacro.core.serialization.SystemToggleAction
 import io.github.dianila68.gesturemacro.core.serialization.TimeWindow
 import io.github.dianila68.gesturemacro.core.serialization.Trigger
+import io.github.dianila68.gesturemacro.core.serialization.WebhookAction
+import io.github.dianila68.gesturemacro.core.serialization.MqttPublishAction
 import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import io.github.dianila68.gesturemacro.core.triggers.TriggerSpec
 import java.util.UUID
@@ -74,6 +76,8 @@ private enum class ActionType(val label: String) {
     ACCESSIBILITY("Accessibility"),
     PLAY_SOUND("Play sound / TTS"),
     LOCATION_ALERT("Location alert"),
+    WEBHOOK("Webhook"),
+    MQTT_PUBLISH("MQTT publish"),
 }
 
 /** A single editable action row. Fields are interpreted per [type]; unused fields are ignored. */
@@ -92,6 +96,14 @@ private data class DraftAction(
     val contactPhone: String = "",
     val contactMessage: String = "",
     val countdownSec: String = "15",
+    // WEBHOOK fields
+    val webhookUrl: String = "",
+    val webhookMethod: String = "POST",
+    val webhookBody: String = "",
+    // MQTT_PUBLISH fields
+    val mqttBrokerUrl: String = "",
+    val mqttTopic: String = "",
+    val mqttPayload: String = "",
     /** Stable catalog id if this action was added via the picker; null for manual entries. */
     val catalogId: String? = null,
 )
@@ -683,6 +695,42 @@ private fun ActionEditor(
                     keyboardType = KeyboardType.Number,
                 )
             }
+
+            ActionType.WEBHOOK -> {
+                ActionField(
+                    label = "URL",
+                    value = draft.webhookUrl,
+                    onValueChange = { onChange(draft.copy(webhookUrl = it)) },
+                )
+                ActionField(
+                    label = "Method (POST, GET, PUT, PATCH, DELETE)",
+                    value = draft.webhookMethod,
+                    onValueChange = { onChange(draft.copy(webhookMethod = it)) },
+                )
+                ActionField(
+                    label = "Body template (optional)",
+                    value = draft.webhookBody,
+                    onValueChange = { onChange(draft.copy(webhookBody = it)) },
+                )
+            }
+
+            ActionType.MQTT_PUBLISH -> {
+                ActionField(
+                    label = "Broker URL (e.g. tcp://192.168.1.10:1883)",
+                    value = draft.mqttBrokerUrl,
+                    onValueChange = { onChange(draft.copy(mqttBrokerUrl = it)) },
+                )
+                ActionField(
+                    label = "Topic",
+                    value = draft.mqttTopic,
+                    onValueChange = { onChange(draft.copy(mqttTopic = it)) },
+                )
+                ActionField(
+                    label = "Payload",
+                    value = draft.mqttPayload,
+                    onValueChange = { onChange(draft.copy(mqttPayload = it)) },
+                )
+            }
         }
         ActionField(
             label = "Delay after (ms)",
@@ -717,6 +765,8 @@ private fun defaultDraft(type: ActionType): DraftAction = when (type) {
     ActionType.ACCESSIBILITY -> DraftAction(type, command = "back")
     ActionType.PLAY_SOUND -> DraftAction(type, soundMode = SoundMode.BUNDLED, bundledSound = "alert")
     ActionType.LOCATION_ALERT -> DraftAction(type, countdownSec = "15")
+    ActionType.WEBHOOK -> DraftAction(type, webhookUrl = "", webhookMethod = "POST")
+    ActionType.MQTT_PUBLISH -> DraftAction(type, mqttBrokerUrl = "", mqttTopic = "")
 }
 
 private fun MacroAction.toDraft(): DraftAction = when (this) {
@@ -753,6 +803,20 @@ private fun MacroAction.toDraft(): DraftAction = when (this) {
         contactPhone = contactPhone,
         contactMessage = message,
         countdownSec = countdownSec.toString(),
+        delayMs = delayAfterMs.toString(),
+    )
+    is WebhookAction -> DraftAction(
+        type = ActionType.WEBHOOK,
+        webhookUrl = url,
+        webhookMethod = method,
+        webhookBody = bodyTemplate,
+        delayMs = delayAfterMs.toString(),
+    )
+    is MqttPublishAction -> DraftAction(
+        type = ActionType.MQTT_PUBLISH,
+        mqttBrokerUrl = brokerUrl,
+        mqttTopic = topic,
+        mqttPayload = payload,
         delayMs = delayAfterMs.toString(),
     )
 }
@@ -812,6 +876,25 @@ private fun DraftAction.toAction(): MacroAction {
                 contactPhone = contactPhone.trim(),
                 message = contactMessage.trim(),
                 countdownSec = countdown,
+                delayAfterMs = delay,
+            )
+        }
+        ActionType.WEBHOOK -> {
+            require(webhookUrl.isNotBlank()) { "Webhook: URL required" }
+            WebhookAction(
+                url = webhookUrl.trim(),
+                method = webhookMethod.trim().ifBlank { "POST" },
+                bodyTemplate = webhookBody.trim(),
+                delayAfterMs = delay,
+            )
+        }
+        ActionType.MQTT_PUBLISH -> {
+            require(mqttBrokerUrl.isNotBlank()) { "MQTT publish: broker URL required" }
+            require(mqttTopic.isNotBlank()) { "MQTT publish: topic required" }
+            MqttPublishAction(
+                brokerUrl = mqttBrokerUrl.trim(),
+                topic = mqttTopic.trim(),
+                payload = mqttPayload.trim(),
                 delayAfterMs = delay,
             )
         }
