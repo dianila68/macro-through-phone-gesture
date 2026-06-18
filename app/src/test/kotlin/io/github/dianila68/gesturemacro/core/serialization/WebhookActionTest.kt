@@ -1,6 +1,6 @@
 package io.github.dianila68.gesturemacro.core.serialization
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class WebhookActionTest {

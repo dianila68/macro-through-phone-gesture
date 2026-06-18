@@ -2,7 +2,10 @@ package io.github.dianila68.gesturemacro.ui
 
 import io.github.dianila68.gesturemacro.core.engine.Condition
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ConditionBuilderViewModelTest {
