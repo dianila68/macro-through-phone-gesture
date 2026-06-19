@@ -58,8 +58,10 @@ import io.github.dianila68.gesturemacro.core.serialization.SoundMode
 import io.github.dianila68.gesturemacro.core.serialization.SystemToggleAction
 import io.github.dianila68.gesturemacro.core.serialization.TimeWindow
 import io.github.dianila68.gesturemacro.core.serialization.Trigger
+import io.github.dianila68.gesturemacro.core.recording.GestureEnvelope
 import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import io.github.dianila68.gesturemacro.core.triggers.TriggerSpec
+import io.github.dianila68.gesturemacro.ui.recording.RecordingSubEditor
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -120,6 +122,21 @@ fun MacroEditorScreen(initial: GestureMacro?, onSave: (GestureMacro) -> Unit, on
     }
     var error by remember { mutableStateOf<String?>(null) }
 
+    // Recording sub-editor state
+    var showRecordingEditor by remember { mutableStateOf(false) }
+    var recordedEnvelope by remember { mutableStateOf<GestureEnvelope?>(null) }
+
+    if (showRecordingEditor) {
+        RecordingSubEditor(
+            onSave = { envelope ->
+                recordedEnvelope = envelope
+                showRecordingEditor = false
+            },
+            onCancel = { showRecordingEditor = false },
+        )
+        return
+    }
+
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = if (initial == null) "New macro" else "Edit macro",
@@ -142,6 +159,8 @@ fun MacroEditorScreen(initial: GestureMacro?, onSave: (GestureMacro) -> Unit, on
             onSensitivity = { sensitivity = it },
             cooldownMs = cooldownMs,
             onCooldown = { cooldownMs = it },
+            onRecordGesture = { showRecordingEditor = true },
+            recordedEnvelope = recordedEnvelope,
         )
 
         ConstraintsSection(
@@ -196,6 +215,8 @@ private fun TriggerSection(
     onSensitivity: (Float) -> Unit,
     cooldownMs: String,
     onCooldown: (String) -> Unit,
+    onRecordGesture: (() -> Unit)? = null,
+    recordedEnvelope: GestureEnvelope? = null,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -207,6 +228,30 @@ private fun TriggerSection(
                         Text(text = t.displayName, style = MaterialTheme.typography.bodyMedium)
                         Text(text = t.description, style = MaterialTheme.typography.bodySmall)
                     }
+                }
+            }
+            // Custom gesture recording option
+            onRecordGesture?.let { record ->
+                HorizontalDivider()
+                OutlinedButton(
+                    onClick = record,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        if (recordedEnvelope != null) {
+                            "Custom gesture recorded ✓ (tap to re-record)"
+                        } else {
+                            "Record a custom gesture…"
+                        },
+                    )
+                }
+                if (recordedEnvelope != null) {
+                    Text(
+                        "${recordedEnvelope.sampleCount} samples · " +
+                            "Confidence: ${(recordedEnvelope.confidence * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             Text(
