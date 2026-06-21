@@ -14,7 +14,7 @@ import kotlin.math.sqrt
  * Match threshold: 75% of slices must be within the band.
  */
 class RecordedGestureDetector(
-    private val envelopeId: String,
+    val envelopeId: String,
     private val envelope: GestureEnvelope,
     sensitivity: Float = 0.5f,
 ) : GestureDetector {
@@ -34,10 +34,10 @@ class RecordedGestureDetector(
 
     // Minimum data before attempting a match
     private val minDataMs = (envelope.durationMeanMs - envelope.durationStdMs)
-        .coerceAtLeast(100f).toLong()
+        .coerceAtLeast(MIN_DATA_COERCE_MS).toLong()
 
     override fun feed(sample: SensorSample): GestureEvent? {
-        if (sample.sensor != SensorType.ACCELEROMETER || sample.v.size < 3) return null
+        if (sample.sensor != SensorType.ACCELEROMETER || sample.v.size < MIN_RECENT_FRAMES) return null
 
         val mag = sqrt(
             sample.v[0] * sample.v[0] +
@@ -60,9 +60,9 @@ class RecordedGestureDetector(
     }
 
     private fun tryMatch(nowMs: Long): GestureEvent? {
-        val recentMs = envelope.durationMeanMs.toLong().coerceAtLeast(100L)
+        val recentMs = envelope.durationMeanMs.toLong().coerceAtLeast(MIN_RECENT_MS)
         val recent = buffer.filter { (t, _) -> nowMs - t <= recentMs }
-        if (recent.size < 3) return null
+        if (recent.size < MIN_RECENT_FRAMES) return null
 
         // Time-normalise to envelope slice count
         val magnitudes = recent.map { it.second }
@@ -95,6 +95,10 @@ class RecordedGestureDetector(
         // Match fraction threshold range (low sensitivity = stricter)
         private const val HIGH_THRESHOLD = 0.85f
         private const val LOW_THRESHOLD = 0.65f
+
+        private const val MIN_DATA_COERCE_MS = 100f
+        private const val MIN_RECENT_MS = 100L
+        private const val MIN_RECENT_FRAMES = 3
 
         /** Utility sensitivity slider value → multiplier. */
         fun sensitivityToMultiplier(sensitivity: Float): Float = lerp(LOW_K, HIGH_K, sensitivity)

@@ -5,6 +5,8 @@ import kotlin.math.sqrt
 object GestureEnvelopeBuilder {
 
     private const val DEFAULT_SLICE_COUNT = 30
+    private const val SLICE_COUNT_MIN = 10
+    private const val SLICE_COUNT_MAX = 60
 
     /**
      * Builds a [GestureEnvelope] from the collected [windows].
@@ -17,7 +19,7 @@ object GestureEnvelopeBuilder {
         config: RecordingConfig,
         sliceCount: Int = DEFAULT_SLICE_COUNT,
     ): GestureEnvelope? {
-        require(sliceCount in 10..60) { "sliceCount must be in 10..60" }
+        require(sliceCount in SLICE_COUNT_MIN..SLICE_COUNT_MAX) { "sliceCount must be in $SLICE_COUNT_MIN..$SLICE_COUNT_MAX" }
 
         val scorer = RepetitionQualityScorer()
 

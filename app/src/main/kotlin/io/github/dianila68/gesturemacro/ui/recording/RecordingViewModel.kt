@@ -14,6 +14,10 @@ import kotlinx.coroutines.launch
 
 class RecordingViewModel : ViewModel() {
 
+    companion object {
+        private const val WAVEFORM_BUFFER_SIZE = 60
+    }
+
     private val session = DefaultGestureRecordingSession()
 
     val recordingState: StateFlow<RecordingState> = session.state
@@ -59,7 +63,7 @@ class RecordingViewModel : ViewModel() {
                 if (state is RecordingState.Recording) {
                     val recentFrames = session.buffer.windows.lastOrNull()?.frames
                         ?.filter { it.channel == RecordingChannel.ACCELEROMETER }
-                        ?.takeLast(60)
+                        ?.takeLast(WAVEFORM_BUFFER_SIZE)
                         ?.map { f ->
                             kotlin.math.sqrt(
                                 f.values[0] * f.values[0] +

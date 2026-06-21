@@ -18,6 +18,10 @@ class RecordedGestureStore(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
+    companion object {
+        private const val MAX_NAME_LENGTH = 40
+    }
+
     /** Live list of all stored gestures, with seal verified. */
     fun observeAll(): Flow<List<StoredGesture>> = dao.observeAll().map { entities ->
         entities.mapNotNull { entity ->
@@ -49,7 +53,7 @@ class RecordedGestureStore(
         val seal = sealer?.seal(envelopeJson)
         val entity = RecordedGestureEntity(
             id = id,
-            name = name.take(40).ifBlank { "Gesture" },
+            name = name.take(MAX_NAME_LENGTH).ifBlank { "Gesture" },
             createdAt = System.currentTimeMillis(),
             envelopeJson = envelopeJson,
             confidence = envelope.confidence,
@@ -62,7 +66,7 @@ class RecordedGestureStore(
 
     suspend fun rename(id: String, newName: String) {
         val entity = dao.getById(id) ?: return
-        dao.upsert(entity.copy(name = newName.take(40).ifBlank { "Gesture" }))
+        dao.upsert(entity.copy(name = newName.take(MAX_NAME_LENGTH).ifBlank { "Gesture" }))
     }
 
     /** Deletes the gesture. Callers must cascade-disable macros referencing [id]. */

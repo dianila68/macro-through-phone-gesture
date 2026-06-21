@@ -48,7 +48,7 @@ class DefaultGestureRecordingSession : GestureRecordingSession {
     private val _state = MutableStateFlow<RecordingState>(RecordingState.Idle)
     override val state: StateFlow<RecordingState> = _state.asStateFlow()
 
-    private val _coverageUpdates = MutableSharedFlow<CoverageUpdate>(extraBufferCapacity = 16)
+    private val _coverageUpdates = MutableSharedFlow<CoverageUpdate>(extraBufferCapacity = COVERAGE_UPDATES_BUFFER)
     override val coverageUpdates: SharedFlow<CoverageUpdate> = _coverageUpdates.asSharedFlow()
 
     override val buffer = SampleBuffer()
@@ -62,17 +62,14 @@ class DefaultGestureRecordingSession : GestureRecordingSession {
         sessionJob?.cancel()
         buffer.clear()
         stillnessSignalled = false
-        scorer.reset()
-        coverageTracker.reset()
 
         sessionJob = scope.launch {
             // Countdown
-            val countdownStep = 250L
             var remaining = config.countdownMs
             while (remaining > 0) {
                 _state.value = RecordingState.Countdown(remaining)
-                delay(countdownStep)
-                remaining -= countdownStep
+                delay(COUNTDOWN_STEP_MS)
+                remaining -= COUNTDOWN_STEP_MS
             }
 
             // Repetitions
@@ -92,7 +89,7 @@ class DefaultGestureRecordingSession : GestureRecordingSession {
                         return@launch
                     }
                     _state.value = RecordingState.Recording(i, elapsed)
-                    delay(50)
+                    delay(RECORDING_POLL_MS)
                     elapsed = System.currentTimeMillis() - windowStart
                 }
                 buffer.closeWindow()
@@ -113,18 +110,11 @@ class DefaultGestureRecordingSession : GestureRecordingSession {
                     while (pauseRemaining > 0) {
                         if (_state.value == RecordingState.Cancelled) return@launch
                         _state.value = RecordingState.InterSamplePause(i + 1, pauseRemaining)
-                        delay(100)
-                        pauseRemaining -= 100
+                        delay(PAUSE_STEP_MS)
+                        pauseRemaining -= PAUSE_STEP_MS
                     }
                 }
             }
-
-            // Check sufficiency
-            val usableCount = buffer.windows.count { w ->
-                scorer.score(w, config) >= RepetitionQualityScorer.LOW_QUALITY_THRESHOLD
-            }.coerceAtLeast(
-                if (collectedCount >= config.minSamples) collectedCount else 0,
-            )
 
             if (collectedCount < config.minSamples) {
                 _state.value = RecordingState.InsufficientData
@@ -143,11 +133,11 @@ class DefaultGestureRecordingSession : GestureRecordingSession {
     }
 
     override fun cancel() {
-        if (_state.value !is RecordingState.Ready &&
+        val cancellable = _state.value !is RecordingState.Ready &&
             _state.value !is RecordingState.Cancelled &&
             _state.value !is RecordingState.InsufficientData &&
             _state.value !is RecordingState.TimedOut
-        ) {
+        if (cancellable) {
             _state.value = RecordingState.Cancelled
             sessionJob?.cancel()
         }
@@ -156,54 +146,65 @@ class DefaultGestureRecordingSession : GestureRecordingSession {
     override fun signalStillness() {
         stillnessSignalled = true
     }
+
+    companion object {
+        private const val COUNTDOWN_STEP_MS = 250L
+        private const val RECORDING_POLL_MS = 50L
+        private const val PAUSE_STEP_MS = 100L
+        private const val COVERAGE_UPDATES_BUFFER = 16
+    }
 }
 
 /** Scores a single SampleWindow for quality. Returns 0..1. */
 class RepetitionQualityScorer {
 
-    fun reset() {} // stateless; reset is no-op
-
     fun score(window: SampleWindow, config: RecordingConfig): Float {
         val accelFrames = window.frames.filter { it.channel == RecordingChannel.ACCELEROMETER }
         if (accelFrames.isEmpty()) return 0f
 
-        val duration = window.durationMs.toFloat()
-        val maxDuration = config.maxWindowMs.toFloat()
-
-        // Duration ratio factor (ideal: 0.2–0.7 of max window)
-        val durationRatio = duration / maxDuration
+        val durationRatio = window.durationMs.toFloat() / config.maxWindowMs.toFloat()
         val durationScore = when {
-            durationRatio < 0.1f -> 0f
-            durationRatio > 0.9f -> 0.3f
-            durationRatio in 0.2f..0.7f -> 1f
-            else -> 0.6f
+            durationRatio < DURATION_TOO_SHORT -> 0f
+            durationRatio > DURATION_TOO_LONG -> DURATION_LONG_PENALTY
+            durationRatio in DURATION_IDEAL_MIN..DURATION_IDEAL_MAX -> 1f
+            else -> DURATION_EDGE_SCORE
         }
 
-        // Peak magnitude factor
         val magnitudes = accelFrames.map { f ->
             sqrt(f.values[0] * f.values[0] + f.values[1] * f.values[1] + f.values[2] * f.values[2])
         }
         val peakMag = magnitudes.maxOrNull() ?: 0f
         val peakScore = when {
-            peakMag < 1.5f -> 0f
-            peakMag >= 4f -> 1f
-            else -> (peakMag - 1.5f) / 2.5f
+            peakMag < PEAK_MAG_LOW -> 0f
+            peakMag >= PEAK_MAG_HIGH -> 1f
+            else -> (peakMag - PEAK_MAG_LOW) / PEAK_MAG_RANGE
         }
 
-        // Spectral spread (rough: variance of magnitudes as proxy for spread)
         val mean = magnitudes.average().toFloat()
         val variance = magnitudes.map { (it - mean) * (it - mean) }.average().toFloat()
         val spreadScore = when {
-            variance < 0.01f -> 0f
-            variance > 2f -> 1f
-            else -> variance / 2f
+            variance < VARIANCE_LOW -> 0f
+            variance > VARIANCE_HIGH -> 1f
+            else -> variance / VARIANCE_HIGH
         }
 
-        return (durationScore + peakScore + spreadScore) / 3f
+        return (durationScore + peakScore + spreadScore) / SCORE_PARTS
     }
 
     companion object {
         const val LOW_QUALITY_THRESHOLD = 0.4f
+        private const val DURATION_TOO_SHORT = 0.1f
+        private const val DURATION_TOO_LONG = 0.9f
+        private const val DURATION_IDEAL_MIN = 0.2f
+        private const val DURATION_IDEAL_MAX = 0.7f
+        private const val DURATION_LONG_PENALTY = 0.3f
+        private const val DURATION_EDGE_SCORE = 0.6f
+        private const val PEAK_MAG_LOW = 1.5f
+        private const val PEAK_MAG_HIGH = 4f
+        private const val PEAK_MAG_RANGE = 2.5f
+        private const val VARIANCE_LOW = 0.01f
+        private const val VARIANCE_HIGH = 2f
+        private const val SCORE_PARTS = 3f
     }
 }
 
@@ -218,16 +219,13 @@ class CoverageTracker {
 
     private val scorer = RepetitionQualityScorer()
 
-    fun reset() {}
-
     fun update(windows: List<SampleWindow>, config: RecordingConfig = RecordingConfig()): CoverageReport {
         val lowQuality = windows.count { scorer.score(it, config) < RepetitionQualityScorer.LOW_QUALITY_THRESHOLD }
 
         val coverageScore = if (windows.size < 2) {
             0f
         } else {
-            // Pairwise distances on 20-point downsampled magnitude traces
-            val traces = windows.map { downsample(it, 20) }
+            val traces = windows.map { downsample(it, DOWNSAMPLE_POINTS) }
             val distances = mutableListOf<Float>()
             for (i in traces.indices) {
                 for (j in i + 1 until traces.size) {
@@ -241,8 +239,7 @@ class CoverageTracker {
             } else {
                 0f
             }
-            // High variation among samples = better coverage
-            if (mean < 0.001f) 0f else (1f - (std / mean.coerceAtLeast(0.001f))).coerceIn(0f, 1f)
+            if (mean < MIN_COVERAGE_MEAN) 0f else (1f - (std / mean.coerceAtLeast(MIN_COVERAGE_MEAN))).coerceIn(0f, 1f)
         }
 
         val earlyAbort = lowQuality > (windows.size / 2) && windows.size >= 2
@@ -270,5 +267,10 @@ class CoverageTracker {
             sum += d * d
         }
         return sqrt(sum)
+    }
+
+    companion object {
+        private const val DOWNSAMPLE_POINTS = 20
+        private const val MIN_COVERAGE_MEAN = 0.001f
     }
 }

@@ -22,7 +22,7 @@ data class RecordedGestureEntity(
 
 @Dao
 interface RecordedGestureDao {
-    @Query("SELECT * FROM recorded_gesture ORDER BY created_at DESC")
+    @Query("SELECT * FROM recorded_gesture ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<RecordedGestureEntity>>
 
     @Query("SELECT * FROM recorded_gesture WHERE id = :id")

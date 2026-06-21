@@ -26,6 +26,10 @@ import io.github.dianila68.gesturemacro.android.data.RecordedGestureStore
 import io.github.dianila68.gesturemacro.android.data.StoredGesture
 import kotlinx.coroutines.launch
 
+private const val CONFIDENCE_HIGH = 0.75f
+private const val CONFIDENCE_MEDIUM = 0.5f
+private const val MAX_NAME_LENGTH = 40
+
 /**
  * Section shown in MacroManager that lists saved recorded gestures with
  * rename, re-record, and delete (with cascade-disable warning) actions.
@@ -52,14 +56,9 @@ fun GestureLibrarySection(
             gestures.forEach { gesture ->
                 GestureRow(
                     gesture = gesture,
-                    onRename = { newName ->
-                        scope.launch { store.rename(gesture.id, newName) }
-                    },
-                    onDelete = {
-                        scope.launch { store.delete(gesture.id) }
-                    },
+                    onRename = { newName -> scope.launch { store.rename(gesture.id, newName) } },
+                    onDelete = { scope.launch { store.delete(gesture.id) } },
                     onReRecord = { onReRecord(gesture) },
-                    macroCount = { 0 }, // wired via store in real usage
                     store = store,
                 )
             }
@@ -73,7 +72,6 @@ private fun GestureRow(
     onRename: (String) -> Unit,
     onDelete: () -> Unit,
     onReRecord: () -> Unit,
-    macroCount: () -> Int,
     store: RecordedGestureStore,
 ) {
     val scope = rememberCoroutineScope()
@@ -83,8 +81,8 @@ private fun GestureRow(
     var usedByCount by remember { mutableStateOf(0) }
 
     val confidenceLabel = when {
-        gesture.envelope.confidence >= 0.75f -> "High"
-        gesture.envelope.confidence >= 0.5f -> "Medium"
+        gesture.envelope.confidence >= CONFIDENCE_HIGH -> "High"
+        gesture.envelope.confidence >= CONFIDENCE_MEDIUM -> "Medium"
         else -> "Low"
     }
 
@@ -98,7 +96,7 @@ private fun GestureRow(
                 if (renaming) {
                     OutlinedTextField(
                         value = nameField,
-                        onValueChange = { if (it.length <= 40) nameField = it },
+                        onValueChange = { if (it.length <= MAX_NAME_LENGTH) nameField = it },
                         label = { Text("Name") },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
@@ -117,13 +115,11 @@ private fun GestureRow(
                     )
                 }
             }
-
             Text(
                 "Confidence: $confidenceLabel · ${gesture.envelope.sampleCount} samples",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-
             if (!gesture.sealValid) {
                 Text(
                     "⚠ Integrity check failed — gesture disabled",
@@ -131,50 +127,71 @@ private fun GestureRow(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (renaming) {
-                    TextButton(
-                        onClick = {
-                            if (nameField.isNotBlank()) {
-                                onRename(nameField)
-                                renaming = false
-                            }
-                        },
-                    ) { Text("Save") }
-                    TextButton(onClick = { renaming = false; nameField = gesture.name }) { Text("Cancel") }
-                } else {
-                    TextButton(onClick = { renaming = true }) { Text("Rename") }
-                    TextButton(onClick = onReRecord) { Text("Re-record") }
-                    TextButton(
-                        onClick = {
-                            scope.launch { usedByCount = store.macrosUsing(gesture.id) }
-                            showDeleteDialog = true
-                        },
-                    ) { Text("Delete") }
-                }
-            }
+            GestureRowActions(
+                renaming = renaming,
+                nameField = nameField,
+                onSaveRename = {
+                    if (nameField.isNotBlank()) {
+                        onRename(nameField)
+                        renaming = false
+                    }
+                },
+                onCancelRename = { renaming = false; nameField = gesture.name },
+                onStartRename = { renaming = true },
+                onReRecord = onReRecord,
+                onDeleteRequest = {
+                    scope.launch { usedByCount = store.macrosUsing(gesture.id) }
+                    showDeleteDialog = true
+                },
+            )
         }
     }
 
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete gesture?") },
-            text = {
-                val warning = if (usedByCount > 0) {
-                    " $usedByCount macro(s) using this gesture will be disabled."
-                } else {
-                    ""
-                }
-                Text("\"${gesture.name}\" will be permanently deleted.$warning")
-            },
-            confirmButton = {
-                TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
-            },
+        GestureDeleteDialog(
+            gestureName = gesture.name,
+            usedByCount = usedByCount,
+            onConfirm = { onDelete(); showDeleteDialog = false },
+            onDismiss = { showDeleteDialog = false },
         )
     }
+}
+
+@Composable
+private fun GestureRowActions(
+    renaming: Boolean,
+    nameField: String,
+    onSaveRename: () -> Unit,
+    onCancelRename: () -> Unit,
+    onStartRename: () -> Unit,
+    onReRecord: () -> Unit,
+    onDeleteRequest: () -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (renaming) {
+            TextButton(onClick = onSaveRename, enabled = nameField.isNotBlank()) { Text("Save") }
+            TextButton(onClick = onCancelRename) { Text("Cancel") }
+        } else {
+            TextButton(onClick = onStartRename) { Text("Rename") }
+            TextButton(onClick = onReRecord) { Text("Re-record") }
+            TextButton(onClick = onDeleteRequest) { Text("Delete") }
+        }
+    }
+}
+
+@Composable
+private fun GestureDeleteDialog(
+    gestureName: String,
+    usedByCount: Int,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val warning = if (usedByCount > 0) " $usedByCount macro(s) using this gesture will be disabled." else ""
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete gesture?") },
+        text = { Text("\"$gestureName\" will be permanently deleted.$warning") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Delete") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
