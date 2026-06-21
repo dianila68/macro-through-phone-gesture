@@ -1,5 +1,7 @@
 package io.github.dianila68.gesturemacro.core.serialization
 
+import io.github.dianila68.gesturemacro.core.engine.Condition
+import io.github.dianila68.gesturemacro.core.engine.SensorCondition
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -23,7 +25,14 @@ data class GestureMacro(
      * only until the schema migration lands.
      */
     @kotlinx.serialization.Transient
-    val condition: io.github.dianila68.gesturemacro.core.engine.Condition? = null,
+    val condition: Condition? = null,
+    /**
+     * ticket-032: List of sensor window conditions that must ALL hold before dispatch.
+     * Evaluated by MacroEngine against a ConditionEventWindow fed by every gesture event.
+     * Transient pending the v3 JSON schema migration.
+     */
+    @kotlinx.serialization.Transient
+    val sensorConditions: List<SensorCondition> = emptyList(),
 ) {
     init {
         require(name.isNotBlank() && name.length <= MAX_NAME_LENGTH) {
