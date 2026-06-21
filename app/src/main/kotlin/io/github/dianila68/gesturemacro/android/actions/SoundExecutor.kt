@@ -144,7 +144,7 @@ class SoundExecutor(private val context: Context) : ActionExecutor {
                     tts?.setLanguage(Locale.US)
                 }
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
+                    override fun onStart(utteranceId: String?): Unit = Unit
                     override fun onDone(utteranceId: String?) {
                         latch.countDown()
                     }

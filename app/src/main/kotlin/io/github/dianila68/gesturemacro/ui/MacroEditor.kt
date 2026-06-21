@@ -30,7 +30,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
@@ -63,7 +62,6 @@ import io.github.dianila68.gesturemacro.core.triggers.TriggerLibrary
 import io.github.dianila68.gesturemacro.core.triggers.TriggerSpec
 import io.github.dianila68.gesturemacro.ui.recording.RecordingSubEditor
 import java.util.UUID
-import kotlinx.coroutines.launch
 
 private enum class ActionType(val label: String) {
     SYSTEM_TOGGLE("System toggle"),
@@ -377,7 +375,6 @@ private fun ActionPickerDialog(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var searchQuery by remember { mutableStateOf("") }
     var pendingSpec by remember { mutableStateOf<ActionSpec?>(null) }
     var packageInput by remember { mutableStateOf("") }

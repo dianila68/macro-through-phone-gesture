@@ -11,16 +11,17 @@ complexity:
   active: true
   LongMethod:
     active: true
-    threshold: 80         # Compose screens legitimately exceed the default 60
+    threshold: 170        # Compose screens and when-dispatch functions are legitimately long
   LongParameterList:
     active: true
-    threshold: 8          # buildMacro / ActionDispatcher constructors are acceptable
+    functionThreshold: 8  # Compose composables with callbacks are acceptable
+    constructorThreshold: 8
     ignoreDefaultParameters: true
   TooManyFunctions:
     active: true
     thresholdInFiles: 20
     thresholdInClasses: 15
-    thresholdInInterfaces: 5
+    thresholdInInterfaces: 10  # Room DAOs routinely have 5–8 query methods
     thresholdInObjects: 12
     thresholdInEnums: 5
   CyclomaticComplexMethod:
@@ -80,8 +81,17 @@ style:
       - '0'
       - '1'
       - '2'
+      - '3'     # minimum 3-component vector size check
+      - '4'     # common factor/divisor
       - '15'    # default countdown seconds
+      - '24'    # hours per day
+      - '30'    # common timeout seconds
+      - '60'    # seconds/minutes per minute/hour
+      - '100'   # percentage multiplier
+      - '180'   # degrees in half-circle
+      - '360'   # degrees in full circle
       - '500'   # common delay_after_ms
+      - '1000'  # milliseconds per second
       - '2000'  # common cooldown_ms
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true

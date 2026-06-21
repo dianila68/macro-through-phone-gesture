@@ -29,7 +29,7 @@ class ShakeDetector(sensitivity: Float = 0.5f) : GestureDetector {
             peaks.removeFirst()
         }
         if (peaks.size >= REQUIRED_PEAKS) {
-            val confidence = min(1f, 0.5f + deviation / (threshold * 4f))
+            val confidence = min(1f, CONFIDENCE_BASE + deviation / (threshold * CONFIDENCE_THRESHOLD_FACTOR))
             reset()
             return GestureEvent(pattern, sample.t, confidence)
         }
@@ -47,5 +47,7 @@ class ShakeDetector(sensitivity: Float = 0.5f) : GestureDetector {
         const val MIN_PEAK_SPACING_MS = 100L
         const val WINDOW_MS = 1_500L
         const val REQUIRED_PEAKS = 3
+        private const val CONFIDENCE_BASE = 0.5f
+        private const val CONFIDENCE_THRESHOLD_FACTOR = 4f
     }
 }

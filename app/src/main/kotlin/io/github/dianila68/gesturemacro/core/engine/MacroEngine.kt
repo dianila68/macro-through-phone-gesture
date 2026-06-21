@@ -76,7 +76,7 @@ class MacroEngine(
     }
 
     private fun minuteOfDay(epochMillis: Long): Int {
-        val minutes = (epochMillis / 60_000L) % (24 * 60)
+        val minutes = (epochMillis / MILLIS_PER_MINUTE) % (24 * 60)
         return minutes.toInt()
     }
 
@@ -86,6 +86,8 @@ class MacroEngine(
     }
 
     companion object {
+        private const val MILLIS_PER_MINUTE = 60_000L
+
         fun PatternKind.matches(pattern: GesturePattern): Boolean = when (this) {
             PatternKind.SHAKE -> pattern == GesturePattern.SHAKE
             PatternKind.DOUBLE_SHAKE -> pattern == GesturePattern.DOUBLE_SHAKE

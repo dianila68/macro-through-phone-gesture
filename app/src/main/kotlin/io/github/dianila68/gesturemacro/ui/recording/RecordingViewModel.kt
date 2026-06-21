@@ -16,6 +16,8 @@ class RecordingViewModel : ViewModel() {
 
     companion object {
         private const val WAVEFORM_BUFFER_SIZE = 60
+        private const val MIN_REQUIRED_SAMPLES = 3
+        private const val MAX_REQUIRED_SAMPLES = 8
     }
 
     private val session = DefaultGestureRecordingSession()
@@ -39,7 +41,7 @@ class RecordingViewModel : ViewModel() {
     private val _validationResult = MutableStateFlow<ValidationOutcome?>(null)
     val validationResult: StateFlow<ValidationOutcome?> = _validationResult.asStateFlow()
 
-    fun setRequiredSamples(n: Int) { _requiredSamples.value = n.coerceIn(3, 8) }
+    fun setRequiredSamples(n: Int) { _requiredSamples.value = n.coerceIn(MIN_REQUIRED_SAMPLES, MAX_REQUIRED_SAMPLES) }
     fun setUseGyro(v: Boolean) { _useGyro.value = v }
     fun setSensitivity(v: Float) { _sensitivity.value = v.coerceIn(0f, 1f) }
 
