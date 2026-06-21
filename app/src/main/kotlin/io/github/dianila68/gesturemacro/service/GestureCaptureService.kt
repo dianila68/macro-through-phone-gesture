@@ -85,11 +85,23 @@ class GestureCaptureService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            heartbeat.recordStop()
-            runningState.value = false
-            stopSelf()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_STOP -> {
+                heartbeat.recordStop()
+                runningState.value = false
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_ARM -> {
+                setArmed(this, true)
+                refreshNotification()
+                return START_NOT_STICKY
+            }
+            ACTION_DISARM -> {
+                setArmed(this, false)
+                refreshNotification()
+                return START_NOT_STICKY
+            }
         }
         startInForeground()
         startHeartbeatLoop()
@@ -139,6 +151,7 @@ class GestureCaptureService : Service() {
     }
 
     private fun onGesture(event: GestureEvent) {
+        if (!isArmed(this)) return  // service alive but user has disarmed gesture processing
         Log.i(TAG, "Gesture detected: ${event.pattern} (confidence ${event.confidence})")
         lastGestureState.value = event
         metricsCollector.recordGesture()
@@ -178,7 +191,12 @@ class GestureCaptureService : Service() {
         } else {
             0
         }
-        ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), type)
+        ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(isArmed(this)), type)
+    }
+
+    private fun refreshNotification() {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(NOTIFICATION_ID, buildNotification(isArmed(this)))
     }
 
     private fun startHeartbeatLoop() {
@@ -190,20 +208,29 @@ class GestureCaptureService : Service() {
         }
     }
 
-    private fun buildNotification(): android.app.Notification {
+    private fun buildNotification(armed: Boolean): android.app.Notification {
         val stopIntent = Intent(this, GestureCaptureService::class.java).setAction(ACTION_STOP)
         val stopPending = PendingIntent.getService(
-            this,
-            0,
-            stopIntent,
+            this, 0, stopIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val toggleAction = if (armed) ACTION_DISARM else ACTION_ARM
+        val toggleLabel  = if (armed) "Disarm" else "Arm"
+        val toggleIntent = Intent(this, GestureCaptureService::class.java).setAction(toggleAction)
+        val togglePending = PendingIntent.getService(
+            this, REQUEST_TOGGLE_NOTIFICATION,
+            toggleIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val statusText = if (armed) "Listening for hardware gestures"
+                         else "Engine paused — tap Arm to resume"
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("GestureMacro engine running")
-            .setContentText("Listening for hardware gestures")
+            .setContentText(statusText)
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(0, toggleLabel, togglePending)
             .addAction(0, "Stop", stopPending)
             .build()
     }
@@ -223,7 +250,12 @@ class GestureCaptureService : Service() {
         private const val TAG = "GestureCapture"
         private const val WAKELOCK_TAG = "$TAG:gestureWindow"
         private const val GESTURE_WINDOW_TIMEOUT_MS = 5_000L
-        const val ACTION_STOP = "io.github.dianila68.gesturemacro.action.STOP"
+        private const val PREFS_NAME = "macro_widget_prefs"
+        private const val KEY_ARMED  = "armed"
+        private const val REQUEST_TOGGLE_NOTIFICATION = 101
+        const val ACTION_STOP   = "io.github.dianila68.gesturemacro.action.STOP"
+        const val ACTION_ARM    = "io.github.dianila68.gesturemacro.action.ARM"
+        const val ACTION_DISARM = "io.github.dianila68.gesturemacro.action.DISARM"
         const val CHANNEL_ID = "gesture_engine"
         const val NOTIFICATION_ID = 1001
         const val HEARTBEAT_INTERVAL_MS = 60_000L
@@ -237,6 +269,15 @@ class GestureCaptureService : Service() {
         val running: StateFlow<Boolean> = runningState
         val lastGesture: StateFlow<GestureEvent?> = lastGestureState
         val metrics: StateFlow<EngineMetrics> = metricsCollector.metrics
+
+        fun isArmed(context: Context): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_ARMED, true)  // default: armed on first launch
+
+        fun setArmed(context: Context, armed: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().putBoolean(KEY_ARMED, armed).apply()
+        }
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, GestureCaptureService::class.java))
