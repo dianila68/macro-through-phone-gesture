@@ -5,103 +5,81 @@ import io.github.dianila68.gesturemacro.core.sensors.GestureEvent
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
 import io.github.dianila68.gesturemacro.core.sensors.SensorSample
 import io.github.dianila68.gesturemacro.core.sensors.SensorType
-import kotlin.math.sqrt
+import io.github.dianila68.gesturemacro.core.sensors.SensorUtils
 
 /**
- * Live detector that matches incoming sensor frames against a [GestureEnvelope].
+ * Live detector that compares the incoming sensor stream against a [GestureEnvelope]
+ * built from user-recorded repetitions (ticket-049).
  *
- * Sensitivity multipliers: low=1.5, medium=2.0, high=3.0 applied to per-slice std.
- * Match threshold: 75% of slices must be within the band.
+ * Detection is window-based:
+ *   1. The last [windowSamples] samples are kept in a ring buffer.
+ *   2. When the buffer is full, it is resampled to [EnvelopeBuilder.GRID_POINTS] buckets.
+ *   3. Each resampled value is tested against the corresponding [EnvelopeBand].
+ *   4. If the fraction of in-band values >= [matchThreshold] a GestureEvent is emitted.
+ *
+ * [pattern] is set to [GesturePattern.FALL] as a placeholder; at persistence time
+ * a stable CUSTOM pattern per recorded gesture is stored in the macro model.
  */
 class RecordedGestureDetector(
-    private val envelopeId: String,
     private val envelope: GestureEnvelope,
-    sensitivity: Float = 0.5f,
+    private val matchThreshold: Float = DEFAULT_MATCH_THRESHOLD,
+    private val windowSamples: Int = EnvelopeBuilder.GRID_POINTS * 2,
+    override val pattern: GesturePattern = GesturePattern.FALL,
+    override val sensor: SensorType = SensorType.ACCELEROMETER,
 ) : GestureDetector {
 
-    override val pattern: GesturePattern = GesturePattern.SHAKE // placeholder; keyed by envelopeId
-    override val sensor: SensorType = SensorType.ACCELEROMETER
-
-    private val sensitivityMultiplier = lerp(LOW_K, HIGH_K, sensitivity)
-    private val matchThreshold = lerp(HIGH_THRESHOLD, LOW_THRESHOLD, sensitivity)
-
-    // Sliding buffer of recent accel magnitudes with timestamps (ms)
-    private val buffer: ArrayDeque<Pair<Long, Float>> = ArrayDeque()
-
-    // Buffer upper bound in ms
-    private val bufferWindowMs = (envelope.durationMeanMs + 2f * envelope.durationStdMs)
-        .coerceAtLeast(500f).toLong()
-
-    // Minimum data before attempting a match
-    private val minDataMs = (envelope.durationMeanMs - envelope.durationStdMs)
-        .coerceAtLeast(100f).toLong()
+    private val window = ArrayDeque<SensorSample>(windowSamples)
+    private var lastEventT = Long.MIN_VALUE
 
     override fun feed(sample: SensorSample): GestureEvent? {
-        if (sample.sensor != SensorType.ACCELEROMETER || sample.v.size < 3) return null
+        if (sample.sensor != sensor) return null
+        if (window.size >= windowSamples) window.removeFirst()
+        window.addLast(sample)
+        if (window.size < windowSamples) return null
+        if (sample.t - lastEventT < MIN_COOLDOWN_MS) return null
 
-        val mag = sqrt(
-            sample.v[0] * sample.v[0] +
-                sample.v[1] * sample.v[1] +
-                sample.v[2] * sample.v[2],
-        )
-        buffer.addLast(sample.t to mag)
+        val resampled = resample(window.toList())
+        val inBand = resampled.mapIndexed { t, values ->
+            values.indices.all { axis ->
+                axis < envelope.axisBands.size &&
+                    t < envelope.axisBands[axis].size &&
+                    envelope.axisBands[axis][t].contains(values[axis])
+            }
+        }.count { it }
 
-        // Prune old entries
-        while (buffer.isNotEmpty() && sample.t - buffer.first().first > bufferWindowMs) {
-            buffer.removeFirst()
-        }
+        val score = inBand.toFloat() / EnvelopeBuilder.GRID_POINTS
+        if (score < matchThreshold) return null
 
-        // Need minimum data before matching
-        if (buffer.isEmpty()) return null
-        val span = buffer.last().first - buffer.first().first
-        if (span < minDataMs) return null
-
-        return tryMatch(sample.t)
-    }
-
-    private fun tryMatch(nowMs: Long): GestureEvent? {
-        val recentMs = envelope.durationMeanMs.toLong().coerceAtLeast(100L)
-        val recent = buffer.filter { (t, _) -> nowMs - t <= recentMs }
-        if (recent.size < 3) return null
-
-        // Time-normalise to envelope slice count
-        val magnitudes = recent.map { it.second }
-        val normalised = GestureEnvelopeBuilder.timeNormalise(magnitudes, envelope.sliceCount)
-
-        // Per-slice band check
-        var passCount = 0
-        for (i in 0 until envelope.sliceCount) {
-            val lo = envelope.magnitudeMean[i] - sensitivityMultiplier * envelope.magnitudeStd[i]
-            val hi = envelope.magnitudeMean[i] + sensitivityMultiplier * envelope.magnitudeStd[i]
-            if (normalised[i] in lo..hi) passCount++
-        }
-
-        val matchFraction = passCount.toFloat() / envelope.sliceCount
-        if (matchFraction < matchThreshold) return null
-
-        reset()
-        return GestureEvent(pattern, nowMs, matchFraction)
+        lastEventT = sample.t
+        return GestureEvent(pattern, sample.t, score)
     }
 
     override fun reset() {
-        buffer.clear()
+        window.clear()
+        lastEventT = Long.MIN_VALUE
+    }
+
+    private fun resample(samples: List<SensorSample>): List<FloatArray> {
+        val axisCount = envelope.axisCount
+        val tStart = samples.first().t.toFloat()
+        val tEnd = samples.last().t.toFloat()
+        val tRange = (tEnd - tStart).coerceAtLeast(1f)
+        return (0 until EnvelopeBuilder.GRID_POINTS).map { gridIdx ->
+            val targetT = tStart + tRange * gridIdx / (EnvelopeBuilder.GRID_POINTS - 1)
+            val lo = samples.lastOrNull { it.t <= targetT.toLong() } ?: samples.first()
+            val hi = samples.firstOrNull { it.t >= targetT.toLong() } ?: samples.last()
+            val alpha = if (lo.t == hi.t) 0f else
+                ((targetT - lo.t) / (hi.t - lo.t)).coerceIn(0f, 1f)
+            FloatArray(axisCount) { axis ->
+                val loV = if (axis < lo.v.size) lo.v[axis] else 0f
+                val hiV = if (axis < hi.v.size) hi.v[axis] else 0f
+                loV + alpha * (hiV - loV)
+            }
+        }
     }
 
     companion object {
-        // Sensitivity multiplier range
-        private const val LOW_K = 1.5f
-        private const val HIGH_K = 3.0f
-
-        // Match fraction threshold range (low sensitivity = stricter)
-        private const val HIGH_THRESHOLD = 0.85f
-        private const val LOW_THRESHOLD = 0.65f
-
-        /** Utility sensitivity slider value → multiplier. */
-        fun sensitivityToMultiplier(sensitivity: Float): Float = lerp(LOW_K, HIGH_K, sensitivity)
-
-        private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t.coerceIn(0f, 1f)
+        const val DEFAULT_MATCH_THRESHOLD = 0.70f
+        const val MIN_COOLDOWN_MS = 1_500L
     }
 }
-
-/** Registry ID for a recorded gesture trigger. */
-data class RecordedTriggerId(val envelopeId: String)
