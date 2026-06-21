@@ -1,71 +1,77 @@
 package io.github.dianila68.gesturemacro.core.recording
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecordingSessionTest {
 
-    private fun makeSession() = DefaultGestureRecordingSession()
-
     @Test
-    fun `cancel from idle leaves state as Idle`() = runTest {
-        val session = makeSession()
-        session.cancel()
-        assertTrue("Expected Idle state", session.state.value is RecordingState.Idle)
+    fun `initial state is Idle`() = runTest {
+        val session = GestureRecordingSession(this)
+        assertEquals(RecordingState.Idle, session.state.value)
     }
 
     @Test
-    fun `cancel during countdown transitions to Cancelled`() = runTest {
-        val session = makeSession()
-        val config = RecordingConfig(countdownMs = 3_000, requiredSamples = 3, minSamples = 1)
-        session.start(config, this)
-        advanceTimeBy(500)
-        session.cancel()
-        advanceTimeBy(100)
-        assertTrue("Expected Cancelled state", session.state.value is RecordingState.Cancelled)
+    fun `start transitions to Countdown`() = runTest {
+        val session = GestureRecordingSession(this)
+        session.start()
+        assertTrue(session.state.value is RecordingState.Countdown)
     }
 
     @Test
-    fun `session moves past Idle after start`() = runTest {
-        val session = makeSession()
-        val config = RecordingConfig(
-            requiredSamples = 1,
-            minSamples = 1,
-            countdownMs = 100,
-            maxWindowMs = 200,
-            interSamplePauseMs = 0,
+    fun `countdown transitions to Capturing after delay`() = runTest {
+        val session = GestureRecordingSession(
+            this,
+            countdownMs = 1_000L,
         )
-        session.start(config, this)
-        advanceTimeBy(1_500)
-        assertFalse("Should not still be Idle", session.state.value is RecordingState.Idle)
-        assertFalse("Should not be Cancelled", session.state.value is RecordingState.Cancelled)
+        session.start()
+        advanceTimeBy(1_100L)
+        assertTrue(session.state.value is RecordingState.Capturing)
     }
 
     @Test
-    fun `SampleBuffer accumulates frames correctly`() {
-        val buf = SampleBuffer()
-        buf.openWindow(0)
-        val frame = SensorFrame(1_000_000L, RecordingChannel.ACCELEROMETER, floatArrayOf(1f, 2f, 3f))
-        buf.appendFrame(frame)
-        buf.closeWindow()
-
-        val windows = buf.windows
-        assert(windows.size == 1) { "Expected 1 window" }
-        assert(windows[0].frames.size == 1) { "Expected 1 frame" }
-        assert(windows[0].frames[0].values.contentEquals(floatArrayOf(1f, 2f, 3f)))
+    fun `stop moves to Reviewing`() = runTest {
+        val session = GestureRecordingSession(this, countdownMs = 100L)
+        session.start()
+        advanceTimeBy(200L)
+        session.stop()
+        assertEquals(RecordingState.Reviewing, session.state.value)
     }
 
     @Test
-    fun `SampleBuffer clear removes all windows`() {
-        val buf = SampleBuffer()
-        buf.openWindow(0)
-        buf.closeWindow()
-        buf.clear()
-        assert(buf.windows.isEmpty()) { "Buffer should be empty after clear" }
+    fun `confirm moves to Done`() = runTest {
+        val session = GestureRecordingSession(this, countdownMs = 100L)
+        session.start()
+        advanceTimeBy(200L)
+        session.stop()
+        session.confirm()
+        assertEquals(RecordingState.Done, session.state.value)
+    }
+
+    @Test
+    fun `reset returns to Idle from any state`() = runTest {
+        val session = GestureRecordingSession(this, countdownMs = 100L)
+        session.start()
+        advanceTimeBy(200L)
+        session.reset()
+        assertEquals(RecordingState.Idle, session.state.value)
+    }
+
+    @Test
+    fun `capture auto-stops after maxCaptureDurationMs`() = runTest {
+        val session = GestureRecordingSession(
+            this,
+            countdownMs = 100L,
+            maxCaptureDurationMs = 500L,
+        )
+        session.start()
+        advanceTimeBy(700L)
+        assertEquals(RecordingState.Reviewing, session.state.value)
     }
 }
