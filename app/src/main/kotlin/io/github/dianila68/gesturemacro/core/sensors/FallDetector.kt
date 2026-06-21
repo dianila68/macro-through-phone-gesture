@@ -1,7 +1,5 @@
 package io.github.dianila68.gesturemacro.core.sensors
 
-import kotlin.math.sqrt
-
 /**
  * Detects a likely fall from accelerometer data by recognising a three-phase
  * signature:
@@ -26,7 +24,6 @@ class FallDetector(sensitivity: Float = 0.5f) : GestureDetector {
     override val pattern = GesturePattern.FALL
     override val sensor = SensorType.ACCELEROMETER
 
-    // Higher sensitivity: wider free-fall band, lower impact threshold, higher stillness tolerance.
     private val freefallMaxMag =
         lerp(FREEFALL_MAX_G_STRICT, FREEFALL_MAX_G_LENIENT, sensitivity) * EARTH_GRAVITY
     private val impactMinMag =
@@ -43,7 +40,7 @@ class FallDetector(sensitivity: Float = 0.5f) : GestureDetector {
 
     override fun feed(sample: SensorSample): GestureEvent? {
         if (sample.sensor != SensorType.ACCELEROMETER || sample.v.size < 3) return null
-        val mag = magnitude(sample.v)
+        val mag = SensorUtils.magnitude(sample.v)
         val t = sample.t
         return when (state) {
             State.IDLE -> {
@@ -57,15 +54,12 @@ class FallDetector(sensitivity: Float = 0.5f) : GestureDetector {
                 if (mag < freefallMaxMag) return null
                 if (t - freefallStart >= MIN_FREEFALL_MS) {
                     state = State.IMPACT_WAIT
-                    // The first sample to exit free-fall may itself be the impact spike —
-                    // check it immediately rather than waiting for the next sample.
                     if (mag >= impactMinMag) {
                         state = State.STILLNESS_WATCH
                         impactTime = t
                         stillnessMags.clear()
                     }
                 } else {
-                    // Free-fall too brief — spurious noise; reset.
                     state = State.IDLE
                     freefallStart = Long.MIN_VALUE
                 }
@@ -84,7 +78,6 @@ class FallDetector(sensitivity: Float = 0.5f) : GestureDetector {
                 null
             }
             State.STILLNESS_WATCH -> {
-                // A large secondary motion spike means the person is moving — not a fall.
                 if (mag > impactMinMag * MOTION_ABORT_FRACTION) {
                     state = State.IDLE
                     stillnessMags.clear()
@@ -92,7 +85,7 @@ class FallDetector(sensitivity: Float = 0.5f) : GestureDetector {
                 }
                 stillnessMags.addLast(t to mag)
                 if (t - impactTime >= STILLNESS_DURATION_MS) {
-                    val varResult = variance(stillnessMags.map { it.second })
+                    val varResult = SensorUtils.variance(stillnessMags.map { it.second })
                     state = State.IDLE
                     stillnessMags.clear()
                     if (varResult <= stillnessVarThreshold) {
@@ -116,37 +109,15 @@ class FallDetector(sensitivity: Float = 0.5f) : GestureDetector {
     }
 
     companion object {
-        /** Fraction of g below which = free-fall (strict/lenient). */
         const val FREEFALL_MAX_G_STRICT = 0.3f
         const val FREEFALL_MAX_G_LENIENT = 0.6f
-
-        /** Free-fall must last at least this long; shorter bursts are sensor noise. */
         const val MIN_FREEFALL_MS = 60L
-
-        /** Multiple of g above which = impact spike (strict requires harder hit). */
         const val IMPACT_G_STRICT = 3.0f
         const val IMPACT_G_LENIENT = 2.0f
-
-        /** Impact must arrive within this window after free-fall ends. */
         const val IMPACT_WINDOW_MS = 2_000L
-
-        /** Observation window for post-impact stillness. */
         const val STILLNESS_DURATION_MS = 2_500L
-
-        /** Variance of magnitudes (m/s²)² below which = still (strict/lenient). */
         const val STILLNESS_VAR_STRICT = 0.5f
         const val STILLNESS_VAR_LENIENT = 3.0f
-
-        /** Fraction of impact threshold above which aborts the stillness watch. */
         const val MOTION_ABORT_FRACTION = 0.5f
     }
-}
-
-private fun magnitude(v: FloatArray): Float =
-    sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
-
-private fun variance(values: List<Float>): Float {
-    if (values.size < 2) return Float.MAX_VALUE
-    val mean = values.average().toFloat()
-    return values.map { d -> val diff = d - mean; diff * diff }.average().toFloat()
 }
