@@ -23,6 +23,8 @@ import io.github.dianila68.gesturemacro.android.actions.SoundExecutor
 import io.github.dianila68.gesturemacro.core.actions.ActionDispatcher
 import io.github.dianila68.gesturemacro.core.engine.BuiltinExecutorRegistry
 import io.github.dianila68.gesturemacro.android.data.MacroStore
+import io.github.dianila68.gesturemacro.core.engine.EngineMetrics
+import io.github.dianila68.gesturemacro.core.engine.EngineMetricsCollector
 import io.github.dianila68.gesturemacro.core.engine.MacroEngine
 import io.github.dianila68.gesturemacro.core.sensors.AndroidSensorStream
 import io.github.dianila68.gesturemacro.core.sensors.GestureDetector
@@ -100,9 +102,6 @@ class GestureCaptureService : Service() {
     private fun startPipeline() {
         if (pipelineJob != null) return
         val stream = AndroidSensorStream(this@GestureCaptureService)
-        // The active detector/sensor set tracks the *enabled* macros: when no enabled
-        // macro uses a pattern, its detector never runs and its sensor is never
-        // registered (NFR-1 — the gyroscope stays off unless a twist macro is on).
         pipelineJob = scope.launch {
             MacroStore.macros
                 .map { macros -> macros.filter { it.enabled }.map { it.trigger.pattern }.toSet() }
@@ -119,18 +118,10 @@ class GestureCaptureService : Service() {
         }
     }
 
-    /**
-     * Detectors for the currently enabled trigger [patterns], merged over only the
-     * sensors they need. Patterns without an available detector contribute nothing,
-     * so an empty set registers no sensors at all. Each sample is paired with the
-     * detector list that must see it (every detector is fed to keep its state in
-     * step; detectors ignore samples from other sensors).
-     */
     private fun detectorStream(
         stream: AndroidSensorStream,
         patterns: Set<PatternKind>,
     ): Flow<Pair<List<GestureDetector>, SensorSample>> {
-        // Proximity wave needs the sensor's maximumRange for relative near/far classification.
         val proximityMaxRange = stream.sensorMaxRange(SensorType.PROXIMITY)
         val detectors = patterns.mapNotNull { pattern ->
             val spec = TriggerLibrary.forPattern(pattern) ?: return@mapNotNull null
@@ -150,12 +141,18 @@ class GestureCaptureService : Service() {
     private fun onGesture(event: GestureEvent) {
         Log.i(TAG, "Gesture detected: ${event.pattern} (confidence ${event.confidence})")
         lastGestureState.value = event
+        metricsCollector.recordGesture()
+        val receivedAt = System.currentTimeMillis()
         val fired = engine.match(event, MacroStore.macros.value)
-        if (fired.isEmpty()) return
+        if (fired.isEmpty()) {
+            metricsCollector.recordMissed()
+            return
+        }
         wakeLock.openWindow(GESTURE_WINDOW_TIMEOUT_MS)
         for (macro in fired) {
             scope.launch {
                 val results = dispatcher.run(macro)
+                metricsCollector.recordDispatch(receivedAt, System.currentTimeMillis())
                 MacroStore.recordExecution(macro, results)
                 Log.i(TAG, "Macro '${macro.name}' executed: $results")
             }
@@ -230,19 +227,16 @@ class GestureCaptureService : Service() {
         const val CHANNEL_ID = "gesture_engine"
         const val NOTIFICATION_ID = 1001
         const val HEARTBEAT_INTERVAL_MS = 60_000L
-
-        /** Settle window so rapid macro toggles re-subscribe sensors once, not per keystroke. */
         const val MACRO_CHANGE_DEBOUNCE_MS = 300L
-
-        /** 50 Hz: responsive enough for FR-2 latency while staying battery-sane (NFR-1). */
         const val SAMPLING_PERIOD_US = 20_000
 
         private val runningState = MutableStateFlow(false)
         private val lastGestureState = MutableStateFlow<GestureEvent?>(null)
+        private val metricsCollector = EngineMetricsCollector()
 
-        /** Observed by the UI; process-local, which is fine: UI and service share the process. */
         val running: StateFlow<Boolean> = runningState
         val lastGesture: StateFlow<GestureEvent?> = lastGestureState
+        val metrics: StateFlow<EngineMetrics> = metricsCollector.metrics
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, GestureCaptureService::class.java))
