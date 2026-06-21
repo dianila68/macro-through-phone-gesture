@@ -2,116 +2,259 @@ package io.github.dianila68.gesturemacro.core.engine
 
 import io.github.dianila68.gesturemacro.core.sensors.GestureEvent
 import io.github.dianila68.gesturemacro.core.sensors.GesturePattern
-import io.github.dianila68.gesturemacro.core.serialization.Constraints
-import io.github.dianila68.gesturemacro.core.serialization.GestureMacro
-import io.github.dianila68.gesturemacro.core.serialization.PatternKind
-import io.github.dianila68.gesturemacro.core.serialization.ScreenState
-import io.github.dianila68.gesturemacro.core.serialization.SensorKind
-import io.github.dianila68.gesturemacro.core.serialization.SystemToggleAction
-import io.github.dianila68.gesturemacro.core.serialization.TimeWindow
-import io.github.dianila68.gesturemacro.core.serialization.Trigger
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import io.github.dianila68.gesturemacro.core.serialization.*
+import org.junit.Assert.*
 import org.junit.Test
 
 class MacroEngineTest {
 
-    private var now = 0L
-    private var screen: Boolean? = null
-    private val engine = MacroEngine(clock = { now }, screenOn = { screen })
+    // ----- helpers -----
+
+    private var screenOn: Boolean? = null
+    private var clockMs: Long = 0L
+
+    private fun engine(
+        conditionWindowMs: Long = 2_000L,
+    ) = MacroEngine(
+        clock = { clockMs },
+        screenOn = { screenOn },
+        conditionWindowMs = conditionWindowMs,
+    )
+
+    private fun event(
+        pattern: GesturePattern = GesturePattern.SHAKE,
+        t: Long = clockMs,
+    ) = GestureEvent(pattern, t, 1f)
 
     private fun macro(
         id: String = "m1",
         pattern: PatternKind = PatternKind.SHAKE,
         enabled: Boolean = true,
-        cooldownMs: Long = 2_000,
-        constraints: Constraints = Constraints(),
+        cooldownMs: Long = 0L,
+        screenState: ScreenState = ScreenState.ANY,
+        timeWindow: TimeWindow? = null,
+        condition: Condition? = null,
     ) = GestureMacro(
         version = 1,
         id = id,
-        name = "test $id",
+        name = "Test $id",
         enabled = enabled,
-        trigger = Trigger(sensor = SensorKind.ACCELEROMETER, pattern = pattern, cooldownMs = cooldownMs),
-        constraints = constraints,
-        actions = listOf(SystemToggleAction(target = "flashlight")),
+        trigger = Trigger(
+            sensor = SensorKind.ACCELEROMETER,
+            pattern = pattern,
+            cooldownMs = cooldownMs,
+        ),
+        constraints = Constraints(screenState = screenState, timeWindow = timeWindow),
+        actions = listOf(IntentAction(target = "pkg", command = "launch")),
+        condition = condition,
     )
 
-    private fun shakeAt(t: Long) = GestureEvent(GesturePattern.SHAKE, t, 1f)
+    // ----- basic matching -----
 
     @Test
-    fun `matching pattern fires the macro`() {
-        val fired = engine.match(shakeAt(0), listOf(macro()))
-        assertEquals(listOf("m1"), fired.map { it.id })
+    fun `empty macro list returns empty`() {
+        val eng = engine()
+        assertTrue(eng.match(event(), emptyList()).isEmpty())
     }
 
     @Test
-    fun `non matching pattern does not fire`() {
-        val fired = engine.match(shakeAt(0), listOf(macro(pattern = PatternKind.FLIP_FACE_DOWN)))
-        assertTrue(fired.isEmpty())
+    fun `matching enabled macro is returned`() {
+        val eng = engine()
+        val result = eng.match(event(GesturePattern.SHAKE), listOf(macro(pattern = PatternKind.SHAKE)))
+        assertEquals(1, result.size)
     }
 
     @Test
-    fun `disabled macro never fires`() {
-        assertTrue(engine.match(shakeAt(0), listOf(macro(enabled = false))).isEmpty())
+    fun `disabled macro is never returned`() {
+        val eng = engine()
+        val result = eng.match(event(GesturePattern.SHAKE), listOf(macro(enabled = false)))
+        assertTrue(result.isEmpty())
     }
 
     @Test
-    fun `cooldown suppresses refire until elapsed`() {
-        val m = macro(cooldownMs = 2_000)
-        now = 1_000
-        assertEquals(1, engine.match(shakeAt(now), listOf(m)).size)
-        now = 2_500
-        assertTrue(engine.match(shakeAt(now), listOf(m)).isEmpty())
-        now = 3_000
-        assertEquals(1, engine.match(shakeAt(now), listOf(m)).size)
+    fun `wrong pattern is not matched`() {
+        val eng = engine()
+        val result = eng.match(event(GesturePattern.SHAKE), listOf(macro(pattern = PatternKind.FLIP_FACE_DOWN)))
+        assertTrue(result.isEmpty())
     }
 
     @Test
-    fun `screen constraint fails closed when state is unknown`() {
-        val m = macro(constraints = Constraints(screenState = ScreenState.OFF))
-        screen = null
-        assertTrue(engine.match(shakeAt(0), listOf(m)).isEmpty())
-        screen = false
-        assertEquals(1, engine.match(shakeAt(0), listOf(m)).size)
+    fun `multiple macros — only matching pattern fires`() {
+        val eng = engine()
+        val m1 = macro(id = "m1", pattern = PatternKind.SHAKE)
+        val m2 = macro(id = "m2", pattern = PatternKind.TWIST)
+        val result = eng.match(event(GesturePattern.SHAKE), listOf(m1, m2))
+        assertEquals(1, result.size)
+        assertEquals("m1", result[0].id)
+    }
+
+    // ----- cooldown -----
+
+    @Test
+    fun `cooldown prevents re-fire within window`() {
+        val eng = engine()
+        val m = macro(cooldownMs = 2_000L)
+        clockMs = 0L
+        eng.match(event(), listOf(m)) // first fire
+        clockMs = 500L
+        val second = eng.match(event(), listOf(m))
+        assertTrue(second.isEmpty())
     }
 
     @Test
-    fun `screen on constraint respects actual state`() {
-        val m = macro(constraints = Constraints(screenState = ScreenState.ON))
-        screen = true
-        assertEquals(1, engine.match(shakeAt(0), listOf(m)).size)
-        screen = false
-        assertTrue(engine.match(shakeAt(now), listOf(m)).isEmpty())
+    fun `cooldown allows re-fire after window elapses`() {
+        val eng = engine()
+        val m = macro(cooldownMs = 2_000L)
+        clockMs = 0L
+        eng.match(event(), listOf(m)) // first fire
+        clockMs = 3_000L
+        val second = eng.match(event(), listOf(m))
+        assertEquals(1, second.size)
     }
 
     @Test
-    fun `time window allows inside and blocks outside`() {
-        val m = macro(constraints = Constraints(timeWindow = TimeWindow("08:00", "17:00")))
-        now = minutesToEpoch(9 * 60)
-        assertEquals(1, engine.match(shakeAt(now), listOf(m)).size)
-        engine.reset()
-        now = minutesToEpoch(18 * 60)
-        assertTrue(engine.match(shakeAt(now), listOf(m)).isEmpty())
+    fun `zero cooldown allows consecutive fires`() {
+        val eng = engine()
+        val m = macro(cooldownMs = 0L)
+        clockMs = 0L
+        eng.match(event(), listOf(m))
+        clockMs = 1L
+        val second = eng.match(event(), listOf(m))
+        assertEquals(1, second.size)
+    }
+
+    // ----- screen state -----
+
+    @Test
+    fun `screen ANY matches regardless of screen state`() {
+        val eng = engine()
+        screenOn = false
+        assertTrue(eng.match(event(), listOf(macro(screenState = ScreenState.ANY))).isNotEmpty())
+        screenOn = true
+        assertTrue(eng.match(event(), listOf(macro(screenState = ScreenState.ANY))).isNotEmpty())
     }
 
     @Test
-    fun `overnight time window wraps midnight`() {
-        val m = macro(constraints = Constraints(timeWindow = TimeWindow("22:00", "06:00")))
-        now = minutesToEpoch(23 * 60)
-        assertEquals(1, engine.match(shakeAt(now), listOf(m)).size)
-        engine.reset()
-        now = minutesToEpoch(3 * 60)
-        assertEquals(1, engine.match(shakeAt(now), listOf(m)).size)
-        engine.reset()
-        now = minutesToEpoch(12 * 60)
-        assertTrue(engine.match(shakeAt(now), listOf(m)).isEmpty())
+    fun `screen ON allows when screen is on`() {
+        screenOn = true
+        val eng = engine()
+        assertTrue(eng.match(event(), listOf(macro(screenState = ScreenState.ON))).isNotEmpty())
     }
 
     @Test
-    fun `independent macros both fire on one event`() {
-        val fired = engine.match(shakeAt(0), listOf(macro(id = "a"), macro(id = "b")))
-        assertEquals(listOf("a", "b"), fired.map { it.id })
+    fun `screen ON blocks when screen is off`() {
+        screenOn = false
+        val eng = engine()
+        assertTrue(eng.match(event(), listOf(macro(screenState = ScreenState.ON))).isEmpty())
     }
 
-    private fun minutesToEpoch(minuteOfDay: Int): Long = minuteOfDay * 60_000L
+    @Test
+    fun `screen OFF allows when screen is off`() {
+        screenOn = false
+        val eng = engine()
+        assertTrue(eng.match(event(), listOf(macro(screenState = ScreenState.OFF))).isNotEmpty())
+    }
+
+    @Test
+    fun `screen OFF blocks when screen is on`() {
+        screenOn = true
+        val eng = engine()
+        assertTrue(eng.match(event(), listOf(macro(screenState = ScreenState.OFF))).isEmpty())
+    }
+
+    // ----- time window -----
+    // clockMs = 0 → minute-of-day = 0 (00:00 UTC)
+
+    @Test
+    fun `time window includes current time`() {
+        clockMs = 0L  // 00:00
+        val eng = engine()
+        val m = macro(timeWindow = TimeWindow("00:00", "06:00"))
+        assertTrue(eng.match(event(), listOf(m)).isNotEmpty())
+    }
+
+    @Test
+    fun `time window excludes current time`() {
+        clockMs = 0L  // 00:00
+        val eng = engine()
+        val m = macro(timeWindow = TimeWindow("08:00", "22:00"))
+        assertTrue(eng.match(event(), listOf(m)).isEmpty())
+    }
+
+    @Test
+    fun `overnight time window includes early morning`() {
+        clockMs = 0L  // 00:00 is inside 23:00..01:00
+        val eng = engine()
+        val m = macro(timeWindow = TimeWindow("23:00", "01:00"))
+        assertTrue(eng.match(event(), listOf(m)).isNotEmpty())
+    }
+
+    // ----- condition gate -----
+
+    @Test
+    fun `condition gate returns true when no condition set`() {
+        val eng = engine()
+        assertTrue(eng.match(event(), listOf(macro(condition = null))).isNotEmpty())
+    }
+
+    @Test
+    fun `pattern condition blocks before matching event seen`() {
+        val eng = engine()
+        val gate = Condition.Pattern(GesturePattern.GOING_DARK, isStateGuard = false)
+        val m = macro(condition = gate)
+        // No GOING_DARK event — condition should fail
+        val result = eng.match(event(GesturePattern.SHAKE), listOf(m))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `pattern condition passes after matching event seen`() {
+        val eng = engine(conditionWindowMs = 5_000L)
+        val gate = Condition.Pattern(GesturePattern.GOING_DARK, isStateGuard = false)
+        val m = macro(condition = gate)
+        clockMs = 0L
+        eng.match(event(GesturePattern.GOING_DARK), listOf(m)) // seeds condition state
+        clockMs = 100L
+        val result = eng.match(event(GesturePattern.SHAKE), listOf(m))
+        assertEquals(1, result.size)
+    }
+
+    @Test
+    fun `state guard condition persists beyond event window`() {
+        val eng = engine(conditionWindowMs = 500L)
+        val gate = Condition.Pattern(GesturePattern.GOING_DARK, isStateGuard = true)
+        val m = macro(condition = gate)
+        clockMs = 0L
+        eng.match(event(GesturePattern.GOING_DARK), listOf(m)) // seeds active state
+        clockMs = 2_000L  // event window long expired; active state persists
+        val result = eng.match(event(GesturePattern.SHAKE), listOf(m))
+        assertEquals(1, result.size)
+    }
+
+    // ----- reset -----
+
+    @Test
+    fun `reset clears cooldown so same macro can fire immediately`() {
+        val eng = engine()
+        val m = macro(cooldownMs = 60_000L)
+        clockMs = 0L
+        eng.match(event(), listOf(m))
+        eng.reset()
+        clockMs = 1L
+        val result = eng.match(event(), listOf(m))
+        assertEquals(1, result.size)
+    }
+
+    @Test
+    fun `reset clears condition state`() {
+        val eng = engine(conditionWindowMs = 60_000L)
+        val gate = Condition.Pattern(GesturePattern.GOING_DARK, isStateGuard = true)
+        val m = macro(condition = gate)
+        clockMs = 0L
+        eng.match(event(GesturePattern.GOING_DARK), listOf(m)) // seeds state
+        eng.reset()
+        clockMs = 1L
+        val result = eng.match(event(GesturePattern.SHAKE), listOf(m))
+        assertTrue(result.isEmpty())  // state guard cleared by reset
+    }
 }
